@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --use-npm --yes)",
+      "Bash(npx create-next-app@14:*)",
+      "Bash(xcopy /E /H /Y \"rep-simulator-app\\\\*\" \"MindsSimulator\"\" && rmdir /S /Q \"rep-simulator-app \")",
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout /t 8 /nobreak)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run lint)"
+    ]
+  }
+}
