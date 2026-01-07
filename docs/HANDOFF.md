@@ -1,65 +1,37 @@
 # RepSimulator Development Handoff
 
 **Last Updated:** January 7, 2026
-**Status:** Phase 1-5 Complete | Ready for Deployment
-**Blocker:** None - Supabase migration complete
+**Status:** All 5 Phases Complete | Ready for Vercel Deployment
+**GitHub:** https://github.com/zssai13/MindsSimulator.git
 
 ---
 
-## CRITICAL: Next Session Priority
+## Quick Start for New Claude Session
 
-### Vector Database Migration ✅ COMPLETE
+### 1. Read These Documents First
+1. `CLAUDE.md` - AI assistant context and instructions
+2. `docs/ARCHITECTURE.md` - Technical architecture
+3. `docs/BUILDINGPLAN.md` - Development phases (all complete)
+4. `docs/CHANGELOG.md` - Version history
+5. This file - Current status
 
-**Problem:** LanceDB (258MB) exceeded Vercel's 250MB serverless function limit.
-
-**Solution:** Migrated to Supabase pgvector - lightweight client library works perfectly with Vercel.
-
-**Supabase Project:**
-- URL: `https://hxtsyipupfbwrububeta.supabase.co`
-- Credentials stored in `.env.local`
-
-### Completed Migration Steps
-
-1. ✅ Created `lib/supabase.ts` - Supabase client helper
-2. ✅ Replaced `lib/vectorstore/index.ts` with Supabase implementation
-3. ✅ Updated `package.json` - Removed @lancedb/lancedb, added @supabase/supabase-js
-4. ✅ Updated `next.config.mjs` - Removed LanceDB-specific config
-5. ✅ Updated `.gitignore` - Removed .lancedb entry
-6. ✅ Build verified - All TypeScript compiles correctly
-
-### Remaining Steps
-
-1. **Run SQL setup in Supabase** (if not done)
-   - Go to Supabase SQL Editor
-   - Run the SQL from `docs/VECTOR-MIGRATION.md`
-
-2. **Deploy to Vercel**
-   - Add environment variables in Vercel dashboard
-   - Push changes and deploy
-
----
-
-## Quick Start for New Sessions
-
+### 2. Key Commands
 ```bash
-# 1. Navigate to project
 cd MindsSimulator
-
-# 2. Read the migration plan FIRST
-cat docs/VECTOR-MIGRATION.md
-
-# 3. Start dev server (for testing after migration)
-npm run dev
+npm run dev      # Start dev server at localhost:3000
+npm run build    # Production build
+npm run lint     # Check for issues
 ```
 
-**Required Reading:**
-1. `docs/VECTOR-MIGRATION.md` - **START HERE** - Full migration plan
-2. `docs/ARCHITECTURE.md` - System architecture
-3. This file - Current status
+### 3. Current State
+- ✅ All code complete and working
+- ✅ Build passes with no errors
+- ✅ Pushed to GitHub (commit `5c089ce`)
+- ⏳ Awaiting Vercel deployment
 
 ---
 
-## Current Position
+## Development Progress
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -70,7 +42,7 @@ npm run dev
 │  (Tab 1 Build)  ✅ COMPLETE                                          │
 │                                                                      │
 │  PHASE 2        ████████████████████████████████████████  100%      │
-│  (Vector DB)    ✅ COMPLETE                                          │
+│  (Vector DB)    ✅ COMPLETE (Supabase pgvector)                      │
 │                                                                      │
 │  PHASE 3        ████████████████████████████████████████  100%      │
 │  (Chat System)  ✅ COMPLETE                                          │
@@ -79,58 +51,83 @@ npm run dev
 │  (Save/Load)    ✅ COMPLETE                                          │
 │                                                                      │
 │  PHASE 5        ████████████████████████████████████████  100%      │
-│  (Supabase)     ✅ COMPLETE - Code migrated, build verified          │
+│  (Supabase)     ✅ COMPLETE - Migration done, build verified         │
 │                                                                      │
-│  DEPLOYMENT     ██████████████████░░░░░░░░░░░░░░░░░░░░░░  READY     │
-│  (Vercel)       ⏳ Run SQL setup, then deploy                        │
+│  DEPLOYMENT     ████████████████████████████████████████  READY     │
+│  (Vercel)       ⏳ SQL setup needed, then deploy                     │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## What's Been Done This Session
+## Deployment Instructions
 
-### Git Repository Setup
-- Initialized git in MindsSimulator folder
-- Pushed to GitHub: https://github.com/zssai13/MindsSimulator.git
-- Removed invalid `nul` file
+### Step 1: Supabase SQL Setup (Required)
 
-### Build Fixes for Vercel
-1. **TypeScript fix:** Exported store interfaces (BuildState, RagState, ChatState)
-2. **API client fix:** Lazy-initialized OpenAI and Anthropic clients to avoid build-time credential errors
+Go to https://hxtsyipupfbwrububeta.supabase.co → **SQL Editor** and run:
 
-### Migration Planning
-- Created comprehensive `docs/VECTOR-MIGRATION.md`
-- Set up Supabase project
-- Stored credentials in `.env.local`
+```sql
+-- Enable pgvector
+create extension if not exists vector;
 
-### Commits Made
+-- Create table
+create table rag_chunks (
+  id text primary key,
+  text text not null,
+  type text not null,
+  topic text,
+  embedding vector(1536),
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Create indexes
+create index on rag_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index on rag_chunks (type);
+
+-- Create search function
+create or replace function match_chunks (
+  query_embedding vector(1536),
+  match_count int default 5,
+  filter_types text[] default null
+)
+returns table (id text, text text, type text, topic text, similarity float)
+language plpgsql as $$
+begin
+  return query
+  select rag_chunks.id, rag_chunks.text, rag_chunks.type, rag_chunks.topic,
+    1 - (rag_chunks.embedding <=> query_embedding) as similarity
+  from rag_chunks
+  where filter_types is null or rag_chunks.type = any(filter_types)
+  order by rag_chunks.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+
+-- Create clear function
+create or replace function clear_all_chunks() returns void
+language plpgsql as $$
+begin delete from rag_chunks; end;
+$$;
 ```
-3a5424b - Initial commit: RepSimulator Testing App
-733f8ea - Fix TypeScript build error in LoadStateModal
-52c4cf9 - Fix build-time API client initialization
-715ac9a - Add Supabase pgvector migration plan
-```
 
----
+### Step 2: Vercel Environment Variables
 
-## Environment Setup
+Add these in Vercel dashboard → Settings → Environment Variables:
 
-### Local (.env.local) - CONFIGURED
+| Variable | Value |
+|----------|-------|
+| `ANTHROPIC_API_KEY` | `sk-ant-...` (from .env.local) |
+| `OPENAI_API_KEY` | `sk-proj-...` (from .env.local) |
+| `SUPABASE_URL` | `https://hxtsyipupfbwrububeta.supabase.co` |
+| `SUPABASE_SERVICE_KEY` | (from .env.local) |
+
+### Step 3: Deploy
+
+Connect GitHub repo to Vercel and deploy, or:
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...  ✅
-OPENAI_API_KEY=sk-proj-...    ✅
-SUPABASE_URL=https://hxtsyipupfbwrububeta.supabase.co  ✅
-SUPABASE_SERVICE_KEY=sb_secret_...  ✅
+npx vercel --prod
 ```
-
-### Vercel - NEEDS CONFIGURATION
-After migration, add these environment variables in Vercel:
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY`
 
 ---
 
@@ -138,103 +135,127 @@ After migration, add these environment variables in Vercel:
 
 | Purpose | File |
 |---------|------|
-| **Migration Plan** | `docs/VECTOR-MIGRATION.md` |
 | Main page | `app/page.tsx` |
-| Vector store (TO REPLACE) | `lib/vectorstore/index.ts` |
-| Embeddings (KEEP) | `lib/vectorstore/embeddings.ts` |
-| Chunking (KEEP) | `lib/vectorstore/chunk.ts` |
-| Supabase client (TO CREATE) | `lib/supabase.ts` |
+| Supabase client | `lib/supabase.ts` |
+| Vector operations | `lib/vectorstore/index.ts` |
+| Embeddings | `lib/vectorstore/embeddings.ts` |
+| Chunking | `lib/vectorstore/chunk.ts` |
 | Build state | `store/buildStore.ts` |
 | RAG state | `store/ragStore.ts` |
 | Chat state | `store/chatStore.ts` |
+| Migration plan | `docs/VECTOR-MIGRATION.md` |
 
 ---
 
-## Deployment Blockers
+## Environment Setup
 
-| Blocker | Status | Solution |
-|---------|--------|----------|
-| LanceDB 258MB > 250MB limit | ❌ Blocking | Migrate to Supabase pgvector |
-| Vercel env vars not set | ⏳ Waiting | Add after migration |
-
----
-
-## Testing After Migration
-
+### Local (.env.local) ✅ CONFIGURED
 ```bash
-# 1. Build locally
-npm run build
-
-# 2. Start dev server
-npm run dev
-
-# 3. Test vectorization
-# - Go to Tab 2
-# - Upload a test file to FAQ
-# - Click "Vectorize All"
-# - Verify chunks appear
-
-# 4. Test query
-# - Start a chat
-# - Ask a question about the FAQ content
-# - Verify RAG results in debug panel
-
-# 5. Deploy to Vercel
-git add -A && git commit -m "Migrate to Supabase pgvector" && git push
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-proj-...
+SUPABASE_URL=https://hxtsyipupfbwrububeta.supabase.co
+SUPABASE_SERVICE_KEY=sb_secret_...
 ```
 
 ---
 
-## Architecture Changes Summary
+## Git Commits History
 
-### Before (LanceDB)
-```
-Chunks → OpenAI Embeddings → LanceDB (local file)
-                                    ↓
-                              .lancedb/ folder
-```
-
-### After (Supabase)
-```
-Chunks → OpenAI Embeddings → Supabase pgvector (cloud)
-                                    ↓
-                              PostgreSQL database
-```
-
-### Benefits
-- ✅ Works on Vercel serverless
-- ✅ Persistent storage (survives function restarts)
-- ✅ Scalable (not limited by function size)
-- ✅ Free tier: 500MB storage, ~70k chunks
+| Hash | Description |
+|------|-------------|
+| `5c089ce` | Migrate from LanceDB to Supabase pgvector |
+| `4d8b4d8` | Update docs for Supabase migration - session handoff |
+| `715ac9a` | Add Supabase pgvector migration plan |
+| `52c4cf9` | Fix build-time API client initialization |
+| `733f8ea` | Fix TypeScript build error in LoadStateModal |
+| `3a5424b` | Initial commit: RepSimulator Testing App |
 
 ---
 
-## Commands
+## What Was Done (Session Summary)
 
-```bash
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run lint     # Check for issues
-```
-
----
-
-## Session Summary
-
-**Session:** January 7, 2026
-**Focus:** Git setup, Vercel deployment fixes, Supabase migration planning
+### January 7, 2026 - Supabase Migration Session
 
 **Completed:**
-- ✅ Git repository initialized and pushed
-- ✅ Fixed TypeScript build errors
-- ✅ Fixed API client initialization errors
-- ✅ Created Supabase migration plan
-- ✅ Supabase project created and credentials stored
+1. ✅ Migrated from LanceDB to Supabase pgvector
+2. ✅ Created `lib/supabase.ts` - lazy-initialized client
+3. ✅ Replaced `lib/vectorstore/index.ts` with Supabase implementation
+4. ✅ Updated dependencies (removed 258MB LanceDB, added lightweight Supabase)
+5. ✅ Updated `next.config.mjs` (removed LanceDB webpack config)
+6. ✅ Build verified - passes with no errors
+7. ✅ Pushed to GitHub
+8. ✅ Updated all documentation
 
-**Blocked:**
-- ❌ Vercel deployment (waiting for Supabase migration)
+**Why Migration Was Needed:**
+- LanceDB native binaries (~258MB) exceeded Vercel's 250MB limit
+- LanceDB uses local file storage (ephemeral on serverless)
+- Supabase is cloud-hosted and lightweight
 
-**Next Session:**
-- Execute Supabase migration (see `docs/VECTOR-MIGRATION.md`)
-- Deploy to Vercel
-- End-to-end testing
+---
+
+## Testing After Deployment
+
+1. **Tab 1 Test:** Upload file → Clean with Opus → Generate prompt
+2. **Tab 2 Test:** Upload RAG content → Vectorize → Chat
+3. **Chat Test:** Send message → See Haiku analysis → See RAG results → Get Sonnet response
+4. **Save/Load Test:** Save state → Reload page → Load state
+
+---
+
+## Architecture Summary
+
+```
+BUILD PHASE (Tab 1)
+━━━━━━━━━━━━━━━━━━━━━
+Raw Data → [Opus] → Cleaned Data → [Opus] → System Prompt
+
+RUNTIME PHASE (Tab 2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Message → [Haiku] → Analysis
+                      ↓
+              [OpenAI] → RAG Query (Supabase pgvector)
+                      ↓
+System Prompt + Analysis + Chunks + History
+                      ↓
+              [Sonnet] → Response
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| State | Zustand |
+| Vector DB | Supabase pgvector |
+| Embeddings | OpenAI text-embedding-3-small |
+| LLM | Anthropic Claude (Opus/Sonnet/Haiku) |
+| Deployment | Vercel |
+
+---
+
+## Troubleshooting
+
+### Build Errors
+- All API clients use lazy initialization
+- Check `.env.local` for missing credentials
+
+### Vector Operations Fail
+- Ensure Supabase SQL setup is complete
+- Check Supabase credentials in environment
+
+### Chat Not Working
+- Verify system prompt is set (Tab 1 → Tab 2)
+- Check RAG content is vectorized
+- Look at debug panels for error details
+
+---
+
+## Next Steps (Post-Deployment)
+
+1. End-to-end testing with real data
+2. Performance monitoring
+3. Consider future enhancements (see BUILDINGPLAN.md)

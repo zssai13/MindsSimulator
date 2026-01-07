@@ -74,7 +74,7 @@ Chunks → OpenAI Embeddings → Supabase pgvector (PostgreSQL)
 - **Credentials:** Stored in `.env.local`
 - **Migration Plan:** See `docs/VECTOR-MIGRATION.md`
 
-### Database Schema (To Be Created)
+### Database Schema
 
 ```sql
 -- Table for storing vectorized chunks
@@ -140,14 +140,14 @@ MindsSimulator/
 │
 ├── lib/
 │   ├── anthropic.ts                  # Anthropic client (lazy-init)
-│   ├── supabase.ts                   # 🆕 TO CREATE: Supabase client
+│   ├── supabase.ts                   # Supabase client (lazy-init)
 │   ├── prompts/
 │   │   ├── cleaning-prompts.ts
 │   │   └── extraction-prompts.ts
 │   ├── vectorstore/
 │   │   ├── embeddings.ts             # OpenAI embeddings (lazy-init)
-│   │   ├── chunk.ts                  # Semantic chunking (unchanged)
-│   │   └── index.ts                  # 🔄 TO REPLACE: LanceDB → Supabase
+│   │   ├── chunk.ts                  # Semantic chunking by content type
+│   │   └── index.ts                  # Supabase pgvector operations
 │   └── storage.ts                    # LocalStorage save/load
 │
 ├── store/
@@ -156,11 +156,12 @@ MindsSimulator/
 │   └── chatStore.ts                  # Chat state
 │
 ├── docs/
-│   ├── PRODUCT-PRD.md
-│   ├── ARCHITECTURE.md               # This file
-│   ├── BUILDINGPLAN.md
-│   ├── HANDOFF.md
-│   └── VECTOR-MIGRATION.md           # 🆕 Migration plan
+│   ├── PRODUCT-PRD.md                # Product requirements
+│   ├── ARCHITECTURE.md               # This file - technical architecture
+│   ├── BUILDINGPLAN.md               # Development phases and progress
+│   ├── HANDOFF.md                    # Session handoff notes
+│   ├── CHANGELOG.md                  # Version history
+│   └── VECTOR-MIGRATION.md           # LanceDB → Supabase migration plan
 │
 ├── .env.local                        # API keys + Supabase credentials
 ├── .env.example
@@ -204,19 +205,12 @@ MindsSimulator/
 ### RAG Vectorization Flow (✅ COMPLETE)
 
 ```
-CURRENT (LanceDB):
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  RAG Files   │────▶│   Chunking   │────▶│  Embedding   │────▶│   LanceDB    │
-│  (6 types)   │     │  (semantic)  │     │   [OpenAI]   │     │   (local)    │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-
-AFTER MIGRATION (Supabase):
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  RAG Files   │────▶│   Chunking   │────▶│  Embedding   │────▶│  Supabase    │
 │  (6 types)   │     │  (semantic)  │     │   [OpenAI]   │     │  pgvector    │
 └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
 
-Chunking Strategy by Type (UNCHANGED):
+Chunking Strategy by Type:
 • docs       → By markdown headers (##, ###)
 • case_study → By customer story / numbered items
 • pricing    → By plan/tier names

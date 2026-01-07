@@ -303,9 +303,8 @@ Three collapsible sections:
 Build-time Opus calls: ~$0.50 per file (one-time)
 
 ### Storage
-- LocalStorage for session state
-- IndexedDB for larger data (cleaned files, vectors)
-- LanceDB for vector storage (local)
+- LocalStorage for session state (save/load)
+- Supabase pgvector for vector storage (cloud-hosted PostgreSQL)
 
 ---
 

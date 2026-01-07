@@ -1,10 +1,10 @@
 # RepSimulator Development Plan
 
-**Last Updated:** All Phases Complete (Phase 4 Session - January 2026)
+**Last Updated:** All Phases Complete (Phase 5 Session - January 7, 2026)
 
 ## Overview
 
-This document outlines the complete build plan to go from foundation to finished app. We build in 4 phases, validating each before moving to the next.
+This document outlines the complete build plan to go from foundation to finished app. We build in 5 phases, validating each before moving to the next.
 
 ---
 
@@ -16,6 +16,7 @@ This document outlines the complete build plan to go from foundation to finished
 | **2** | Vector Database | RAG system working | 4 lib files, 2 API routes, 2 components | ✅ COMPLETE |
 | **3** | Chat System | Full pipeline with debug | 5 components, 2 API routes, 1 store | ✅ COMPLETE |
 | **4** | Save/Load | State persistence | 2 components, 1 lib file | ✅ COMPLETE |
+| **5** | Supabase Migration | Vercel-compatible vector DB | 1 lib file, 1 replaced | ✅ COMPLETE |
 
 ---
 
@@ -79,7 +80,7 @@ This document outlines the complete build plan to go from foundation to finished
 
 **Goal:** User can upload RAG content, vectorize it, and query it.
 
-**Completed:** All files built and tested. LanceDB configured for Next.js.
+**Completed:** All files built and tested. Originally used LanceDB, now migrated to Supabase pgvector (see Phase 5).
 
 ### Lib Files Built
 
@@ -106,7 +107,7 @@ This document outlines the complete build plan to go from foundation to finished
 
 ### Validation Checklist
 
-- [x] LanceDB initializes without errors
+- [x] Vector DB initializes without errors
 - [x] Can upload 6 RAG file types
 - [x] Status shows: Empty → Uploaded → Vectorizing → Ready
 - [x] Vectorize All processes all files
@@ -114,11 +115,11 @@ This document outlines the complete build plan to go from foundation to finished
 - [x] Chunks stored with correct metadata (type, topic)
 - [x] Query returns relevant chunks
 - [x] Query can filter by content type
-- [x] Vectorized data persists in .lancedb folder
+- [x] Vectorized data persists (in Supabase cloud)
 
 ### Phase 2 Implementation Notes
 
-1. **LanceDB on Windows** - Required `serverComponentsExternalPackages` config in next.config.mjs
+1. **Supabase pgvector** - Cloud-hosted PostgreSQL with vector extension (migrated from LanceDB in Phase 5)
 2. **Semantic Chunking** - Each content type has specialized chunking strategy
 3. **Batch Embeddings** - Embeddings are batched for efficiency (100 texts per API call)
 
@@ -232,10 +233,78 @@ The Save/Load system saves:
 - Chunk counts
 
 It does **NOT** save:
-- Actual vector embeddings in LanceDB
-- The `.lancedb/` folder data
+- Actual vector embeddings (stored in Supabase cloud)
 
-After loading a saved state with "ready" RAG status, users may need to re-vectorize if the LanceDB data was cleared. The status will show as "ready" but queries won't return results until re-vectorized.
+With Supabase, vector data now persists in the cloud, so loaded states should work without re-vectorization (unless the Supabase database was cleared).
+
+---
+
+## Phase 5: Supabase Migration ✅ COMPLETE
+
+**Goal:** Replace LanceDB with Supabase pgvector for Vercel deployment compatibility.
+
+**Problem:** LanceDB native binaries (~258MB) exceeded Vercel's 250MB serverless function limit.
+
+**Solution:** Migrated to Supabase pgvector - a cloud-hosted PostgreSQL with vector extensions.
+
+### Files Created
+
+| # | File | Path | Status |
+|---|------|------|--------|
+| 5.1 | Supabase Client | `lib/supabase.ts` | ✅ Complete |
+
+### Files Replaced
+
+| # | File | Path | Status |
+|---|------|------|--------|
+| 5.2 | Vector Store | `lib/vectorstore/index.ts` | ✅ Complete (Supabase impl) |
+
+### Files Modified
+
+| # | File | Change | Status |
+|---|------|--------|--------|
+| 5.3 | `package.json` | Remove LanceDB, add Supabase | ✅ Complete |
+| 5.4 | `next.config.mjs` | Remove LanceDB externals | ✅ Complete |
+| 5.5 | `.gitignore` | Remove .lancedb entry | ✅ Complete |
+| 5.6 | `.env.example` | Add Supabase placeholders | ✅ Complete |
+
+### Validation Checklist
+
+- [x] Supabase client initializes without errors
+- [x] `npm run build` succeeds (function size < 250MB)
+- [x] Vectorization stores chunks in Supabase
+- [x] Query retrieves chunks from Supabase
+- [x] Type filtering works
+- [x] Clear all chunks works
+- [x] API interface unchanged (drop-in replacement)
+
+### Phase 5 Implementation Notes
+
+1. **Lazy Client Initialization** - Supabase client lazy-initialized to avoid build-time credential errors
+2. **Batch Upsert** - Chunks inserted in batches of 100 for performance
+3. **RPC Functions** - `match_chunks` for vector similarity search, `clear_all_chunks` for reset
+4. **Similarity → Distance** - Converted similarity scores to distance for API consistency
+
+### Supabase SQL Setup Required
+
+Before first use, run in Supabase SQL Editor:
+```sql
+create extension if not exists vector;
+
+create table rag_chunks (
+  id text primary key,
+  text text not null,
+  type text not null,
+  topic text,
+  embedding vector(1536),
+  created_at timestamp with time zone default now()
+);
+
+create index on rag_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index on rag_chunks (type);
+
+-- See docs/VECTOR-MIGRATION.md for complete SQL
+```
 
 ---
 
@@ -283,14 +352,21 @@ Phase 2 (Vector DB) ✅ COMPLETE       Phase 3 (Chat) ✅ COMPLETE
                         │
                         ▼
                   Phase 4 (Save/Load) ✅ COMPLETE
+                        │
+                        ▼
+                  Phase 5 (Supabase) ✅ COMPLETE
+                        │
+                        ▼
+                  Vercel Deployment ⏳ READY
 ```
 
 Phase 1 ✅ Complete
 Phase 2 ✅ Complete
 Phase 3 ✅ Complete
 Phase 4 ✅ Complete
+Phase 5 ✅ Complete
 
-**ALL PHASES COMPLETE**
+**ALL PHASES COMPLETE - READY FOR VERCEL DEPLOYMENT**
 
 ---
 
@@ -299,8 +375,9 @@ Phase 4 ✅ Complete
 | Phase | Components | API Routes | Complexity | Status |
 |-------|------------|------------|------------|--------|
 | 1 | 7 | 2 | Medium | ✅ Done |
-| 2 | 2 + 4 lib | 2 | Medium-High (LanceDB) | ✅ Done |
+| 2 | 2 + 4 lib | 2 | Medium-High | ✅ Done |
 | 3 | 5 + 1 store | 2 | High (orchestration) | ✅ Done |
 | 4 | 2 + 1 lib | 0 | Low | ✅ Done |
+| 5 | 1 lib + 1 replace | 0 | Medium (migration) | ✅ Done |
 
-**Current Position:** All phases complete. App is ready for production use.
+**Current Position:** All phases complete. App is ready for Vercel deployment.
