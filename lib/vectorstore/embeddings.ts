@@ -1,9 +1,16 @@
 import OpenAI from 'openai';
 
-// Server-side only - used in API routes
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-initialized OpenAI client (avoids build-time initialization)
+let openaiClient: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Model for embeddings - text-embedding-3-small (1536 dimensions)
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
@@ -13,7 +20,7 @@ export const EMBEDDING_DIMENSIONS = 1536;
  * Generate embeddings for a single text
  */
 export async function getEmbedding(text: string): Promise<number[]> {
-  const response = await openai.embeddings.create({
+  const response = await getOpenAI().embeddings.create({
     model: EMBEDDING_MODEL,
     input: text,
   });
@@ -34,7 +41,7 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
-    const response = await openai.embeddings.create({
+    const response = await getOpenAI().embeddings.create({
       model: EMBEDDING_MODEL,
       input: batch,
     });
