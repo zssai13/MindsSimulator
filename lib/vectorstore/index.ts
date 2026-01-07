@@ -1,11 +1,6 @@
-import * as lancedb from '@lancedb/lancedb';
-import { getEmbedding, getEmbeddings, EMBEDDING_DIMENSIONS } from './embeddings';
+import { getSupabase } from '@/lib/supabase';
+import { getEmbedding, getEmbeddings } from './embeddings';
 import { Chunk, RagType } from './chunk';
-import path from 'path';
-
-// LanceDB storage path - in project root for persistence
-const DB_PATH = path.join(process.cwd(), '.lancedb');
-const TABLE_NAME = 'rag_chunks';
 
 // Vector search result interface
 export interface SearchResult {
@@ -16,57 +11,6 @@ export interface SearchResult {
   score: number;
 }
 
-// Database connection (cached)
-let dbConnection: lancedb.Connection | null = null;
-
-/**
- * Get or create the database connection
- */
-async function getDb(): Promise<lancedb.Connection> {
-  if (!dbConnection) {
-    dbConnection = await lancedb.connect(DB_PATH);
-  }
-  return dbConnection;
-}
-
-/**
- * Check if the table exists
- */
-async function tableExists(): Promise<boolean> {
-  const db = await getDb();
-  const tables = await db.tableNames();
-  return tables.includes(TABLE_NAME);
-}
-
-/**
- * Initialize or get the table
- */
-async function getOrCreateTable(): Promise<lancedb.Table> {
-  const db = await getDb();
-
-  if (await tableExists()) {
-    return db.openTable(TABLE_NAME);
-  }
-
-  // Create new table with schema
-  // LanceDB infers schema from the first data inserted
-  // We'll create with a placeholder that gets replaced on first insert
-  const initialData = [{
-    id: '_init_',
-    text: '_initialization_placeholder_',
-    type: 'docs' as RagType,
-    topic: '',
-    vector: new Array(EMBEDDING_DIMENSIONS).fill(0),
-  }];
-
-  const table = await db.createTable(TABLE_NAME, initialData);
-
-  // Delete the placeholder
-  await table.delete('id = "_init_"');
-
-  return table;
-}
-
 /**
  * Index chunks with their embeddings
  * Main function for adding documents to the vector store
@@ -74,7 +18,7 @@ async function getOrCreateTable(): Promise<lancedb.Table> {
 export async function indexChunks(chunks: Chunk[]): Promise<number> {
   if (chunks.length === 0) return 0;
 
-  const table = await getOrCreateTable();
+  const supabase = getSupabase();
 
   // Get embeddings for all chunks in batch
   const texts = chunks.map(c => c.text);
@@ -85,14 +29,28 @@ export async function indexChunks(chunks: Chunk[]): Promise<number> {
     id: chunk.id,
     text: chunk.text,
     type: chunk.type,
-    topic: chunk.topic || '',
-    vector: embeddings[i],
+    topic: chunk.topic || null,
+    embedding: embeddings[i],
   }));
 
-  // Add to table
-  await table.add(records);
+  // Insert in batches of 100 (Supabase performs better with batches)
+  const BATCH_SIZE = 100;
+  let insertedCount = 0;
 
-  return records.length;
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase
+      .from('rag_chunks')
+      .upsert(batch, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error inserting chunks:', error);
+      throw error;
+    }
+    insertedCount += batch.length;
+  }
+
+  return insertedCount;
 }
 
 /**
@@ -107,33 +65,30 @@ export async function queryChunks(
 ): Promise<SearchResult[]> {
   const { limit = 5, contentTypes } = options || {};
 
-  if (!(await tableExists())) {
+  const supabase = getSupabase();
+
+  // Get embedding for the query
+  const queryEmbedding = await getEmbedding(query);
+
+  // Call the match_chunks function
+  const { data, error } = await supabase.rpc('match_chunks', {
+    query_embedding: queryEmbedding,
+    match_count: limit,
+    filter_types: contentTypes || null,
+  });
+
+  if (error) {
+    console.error('Error querying chunks:', error);
     return [];
   }
 
-  const table = await getOrCreateTable();
-
-  // Get embedding for the query
-  const queryVector = await getEmbedding(query);
-
-  // Build the search
-  let search = table.search(queryVector).limit(limit);
-
-  // Apply type filter if specified
-  if (contentTypes && contentTypes.length > 0) {
-    const typeFilter = contentTypes.map(t => `type = '${t}'`).join(' OR ');
-    search = search.where(typeFilter);
-  }
-
-  // Execute search
-  const results = await search.toArray();
-
-  return results.map(row => ({
-    id: row.id as string,
-    text: row.text as string,
+  // Convert similarity to distance score (lower is better for consistency with LanceDB)
+  return (data || []).map((row: { id: string; text: string; type: string; topic: string | null; similarity: number }) => ({
+    id: row.id,
+    text: row.text,
     type: row.type as RagType,
-    topic: row.topic as string | undefined,
-    score: row._distance as number,
+    topic: row.topic || undefined,
+    score: 1 - row.similarity, // Convert similarity to distance
   }));
 }
 
@@ -173,14 +128,16 @@ export async function queryMultiple(
 }
 
 /**
- * Clear all chunks from the table
+ * Clear all chunks from the database
  * Useful for re-indexing
  */
 export async function clearAll(): Promise<void> {
-  const db = await getDb();
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('clear_all_chunks');
 
-  if (await tableExists()) {
-    await db.dropTable(TABLE_NAME);
+  if (error) {
+    console.error('Error clearing chunks:', error);
+    throw error;
   }
 }
 
@@ -188,12 +145,17 @@ export async function clearAll(): Promise<void> {
  * Get count of indexed chunks
  */
 export async function getChunkCount(): Promise<number> {
-  if (!(await tableExists())) {
+  const supabase = getSupabase();
+  const { count, error } = await supabase
+    .from('rag_chunks')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Error counting chunks:', error);
     return 0;
   }
 
-  const table = await getOrCreateTable();
-  return await table.countRows();
+  return count || 0;
 }
 
 /**
@@ -209,18 +171,17 @@ export async function getCountByType(): Promise<Record<RagType, number>> {
     website: 0,
   };
 
-  if (!(await tableExists())) {
-    return counts;
-  }
-
-  const table = await getOrCreateTable();
+  const supabase = getSupabase();
 
   for (const type of Object.keys(counts) as RagType[]) {
-    const results = await table.search(new Array(EMBEDDING_DIMENSIONS).fill(0))
-      .where(`type = '${type}'`)
-      .limit(10000)
-      .toArray();
-    counts[type] = results.length;
+    const { count, error } = await supabase
+      .from('rag_chunks')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', type);
+
+    if (!error && count !== null) {
+      counts[type] = count;
+    }
   }
 
   return counts;
