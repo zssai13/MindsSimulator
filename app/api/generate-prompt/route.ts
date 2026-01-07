@@ -6,9 +6,7 @@ interface CleanedData {
   transcripts: string | null;
   tickets: string | null;
   website: string | null;
-  docs: string | null;
   research: string | null;
-  'email-guide': string | null;
 }
 
 interface GeneratePromptRequest {

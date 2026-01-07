@@ -8,36 +8,34 @@ const typeLabels: Record<DataType, string> = {
   transcripts: 'Transcripts',
   tickets: 'Support Tickets',
   website: 'Website Content',
-  docs: 'Product Docs',
   research: 'Business Research',
-  'email-guide': 'Email Guide',
 };
 
-const allTypes: DataType[] = ['transcripts', 'tickets', 'website', 'docs', 'research', 'email-guide'];
+const allTypes: DataType[] = ['transcripts', 'tickets', 'website', 'research'];
 
 export function CleanedFileDisplay() {
   const [viewingFile, setViewingFile] = useState<{ type: DataType; content: string } | null>(null);
   const cleanedData = useBuildStore((s) => s.cleanedData);
 
-  const cleanedFiles = allTypes.filter((type) => cleanedData[type] !== null);
+  const uploadedFiles = allTypes.filter((type) => cleanedData[type] !== null);
 
   const handleDownload = (type: DataType, content: string) => {
-    const blob = new Blob([content], { type: 'application/json' });
+    const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cleaned-${type}.json`;
+    a.download = `${type}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  if (cleanedFiles.length === 0) {
+  if (uploadedFiles.length === 0) {
     return (
       <div className="border rounded-lg p-6 bg-gray-50">
         <p className="text-sm text-gray-500 text-center">
-          No cleaned files yet. Upload and clean data above.
+          No files uploaded yet. Upload your pre-cleaned markdown files above.
         </p>
       </div>
     );
@@ -47,7 +45,7 @@ export function CleanedFileDisplay() {
     <>
       <div className="border rounded-lg p-4 bg-white">
         <div className="space-y-2">
-          {cleanedFiles.map((type) => {
+          {uploadedFiles.map((type) => {
             const content = cleanedData[type]!;
             return (
               <div

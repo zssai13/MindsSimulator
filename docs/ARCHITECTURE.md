@@ -1,7 +1,7 @@
 # RepSimulator Technical Architecture
 
 **Last Updated:** January 7, 2026
-**Status:** Phase 1-5 Complete | Ready for Vercel Deployment
+**Status:** Phase 1-6 Complete | Ready for Vercel Deployment
 
 ---
 
@@ -103,7 +103,6 @@ MindsSimulator/
 │   ├── layout.tsx                    # Root layout
 │   ├── globals.css                   # Tailwind imports
 │   └── api/
-│       ├── clean/route.ts            # POST: Clean data with Opus
 │       ├── generate-prompt/route.ts  # POST: Extract sections with Opus
 │       ├── vectorize/route.ts        # POST: Chunk + embed + store
 │       ├── query/route.ts            # POST: Vector similarity search
@@ -142,8 +141,7 @@ MindsSimulator/
 │   ├── anthropic.ts                  # Anthropic client (lazy-init)
 │   ├── supabase.ts                   # Supabase client (lazy-init)
 │   ├── prompts/
-│   │   ├── cleaning-prompts.ts
-│   │   └── extraction-prompts.ts
+│   │   └── extraction-prompts.ts     # System prompt section extraction
 │   ├── vectorstore/
 │   │   ├── embeddings.ts             # OpenAI embeddings (lazy-init)
 │   │   ├── chunk.ts                  # Semantic chunking by content type
@@ -176,30 +174,26 @@ MindsSimulator/
 
 ## Data Flow
 
-### Build Phase Flow (✅ COMPLETE)
+### Build Phase Flow (✅ COMPLETE - Simplified in Phase 6)
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Raw Files   │────▶│  /api/clean  │────▶│ Cleaned Data │
-│  (6 types)   │     │    [Opus]    │     │    (JSON)    │
-└──────────────┘     └──────────────┘     └──────────────┘
-                                                  │
-                                                  ▼
-                     ┌──────────────────────────────────────┐
-                     │         /api/generate-prompt         │
-                     │              [Opus]                  │
-                     │  Extracts 6 sections:                │
-                     │  • Identity    • Tone                │
-                     │  • ICP         • Objections          │
-                     │  • Email       • Competitive         │
-                     └──────────────────────────────────────┘
-                                                  │
-                                                  ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│Static Rules  │────▶│   Combine    │────▶│   System     │
-│(Template +   │     │              │     │   Prompt     │
-│ User Rules)  │     └──────────────┘     └──────────────┘
-└──────────────┘
+┌──────────────────┐     ┌──────────────────────────────────────┐
+│  Pre-cleaned     │     │         /api/generate-prompt         │
+│  .md Files       │────▶│              [Opus]                  │
+│  (4 types)       │     │  Extracts 6 sections:                │
+│                  │     │  • Identity    • Tone                │
+│  • transcripts   │     │  • ICP         • Objections          │
+│  • tickets       │     │  • Email       • Competitive         │
+│  • website       │     └──────────────────────────────────────┘
+│  • research      │                       │
+└──────────────────┘                       ▼
+                         ┌──────────────┐     ┌──────────────┐
+                         │Static Rules  │────▶│   System     │
+                         │(Template +   │     │   Prompt     │
+                         │ User Rules)  │     └──────────────┘
+                         └──────────────┘
+
+Note: Data cleaning removed in Phase 6. Users upload pre-cleaned markdown files directly.
 ```
 
 ### RAG Vectorization Flow (✅ COMPLETE)
@@ -270,11 +264,8 @@ Chunking Strategy by Type:
 
 ## API Routes
 
-### POST /api/clean
-Cleans raw data using Opus with type-specific prompts.
-
 ### POST /api/generate-prompt
-Extracts system prompt sections from all cleaned data.
+Extracts system prompt sections from uploaded data using Opus.
 
 ### POST /api/vectorize
 Chunks and embeds files, stores in Supabase pgvector.
@@ -293,7 +284,7 @@ Generates response with Sonnet using assembled prompt.
 ## State Management
 
 ### buildStore (Tab 1)
-- Raw/cleaned data for 6 data types
+- Uploaded data for 4 data types (transcripts, tickets, website, research)
 - Template and user rules
 - Extracted sections and final system prompt
 - Loading states
@@ -329,7 +320,6 @@ export const EMBEDDING_DIMENSIONS = 1536;
 
 | Task | Model | Reasoning |
 |------|-------|-----------|
-| Data cleaning | Opus | Quality matters, runs once |
 | Prompt extraction | Opus | Quality matters, runs once |
 | Embeddings | OpenAI text-embedding-3-small | Industry standard, 1536 dims |
 | Message analysis | Haiku | Fast, cheap, classification task |
@@ -358,7 +348,8 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 | **3** | Chat System | ✅ COMPLETE |
 | **4** | Save/Load State | ✅ COMPLETE |
 | **5** | Supabase Migration | ✅ COMPLETE |
-| **6** | Vercel Deployment | ⏳ READY |
+| **6** | Tab 1 Simplification (Remove Cleaning) | ✅ COMPLETE |
+| **7** | Vercel Deployment | ⏳ READY |
 
 ---
 
@@ -374,9 +365,11 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 
 5. **State Persistence** - LocalStorage works well for saving app state but doesn't persist vector data (need cloud DB for that).
 
+6. **External Data Cleaning** - Separating data cleaning from the app allows more flexibility. Users can use specialized tools for cleaning and upload pre-processed files.
+
 ---
 
-## Files Changed in Migration
+## Files Changed in Phase 5 (Supabase Migration)
 
 | File | Action |
 |------|--------|
@@ -388,3 +381,23 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 | `.env.local` | UPDATE - Add Supabase credentials |
 
 See `docs/VECTOR-MIGRATION.md` for complete migration plan.
+
+---
+
+## Files Changed in Phase 6 (Tab 1 Simplification)
+
+| File | Action |
+|------|--------|
+| `app/api/clean/route.ts` | DELETE - Cleaning API removed |
+| `lib/prompts/cleaning-prompts.ts` | DELETE - Cleaning prompts removed |
+| `store/buildStore.ts` | UPDATE - Remove rawData, cleaningInProgress; reduce to 4 types |
+| `lib/storage.ts` | UPDATE - Remove rawData from SavedState |
+| `app/api/generate-prompt/route.ts` | UPDATE - CleanedData interface to 4 types |
+| `components/upload/DataUploadZone.tsx` | UPDATE - Simplified to direct upload |
+| `components/upload/CleanedFileDisplay.tsx` | UPDATE - 4 types, .md download |
+| `components/upload/FileViewModal.tsx` | UPDATE - 4 type labels |
+| `components/tabs/Tab1BuildPhase.tsx` | UPDATE - 4 upload zones |
+| `components/state/SaveStateButton.tsx` | UPDATE - Remove rawData |
+| `components/state/LoadStateModal.tsx` | UPDATE - Backward compatibility |
+
+See `docs/CLEANED.md` for complete implementation plan.

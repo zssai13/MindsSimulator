@@ -181,24 +181,26 @@ function restoreBuildState(
 ) {
   const { build } = state;
 
-  // Restore raw data
-  const dataTypes: DataType[] = ['transcripts', 'tickets', 'website', 'docs', 'research', 'email-guide'];
+  // Restore uploaded data (only 4 types now)
+  const dataTypes: DataType[] = ['transcripts', 'tickets', 'website', 'research'];
   dataTypes.forEach((type) => {
-    store.setRawData(type, build.rawData[type]);
-    store.setCleanedData(type, build.cleanedData[type]);
+    // Use optional chaining for backward compatibility with old saves
+    store.setCleanedData(type, build.cleanedData?.[type] ?? null);
   });
 
   // Restore rules
-  store.setTemplateRules(build.templateRules);
-  store.setUserRules(build.userRules);
+  store.setTemplateRules(build.templateRules || '');
+  store.setUserRules(build.userRules || '');
 
   // Restore extracted sections
-  Object.entries(build.extractedSections).forEach(([section, content]) => {
-    store.setExtractedSection(section, content);
-  });
+  if (build.extractedSections) {
+    Object.entries(build.extractedSections).forEach(([section, content]) => {
+      store.setExtractedSection(section, content);
+    });
+  }
 
   // Restore system prompt
-  store.setSystemPrompt(build.systemPrompt);
+  store.setSystemPrompt(build.systemPrompt || '');
 }
 
 // Helper function to restore RAG store state

@@ -48,7 +48,6 @@ export function SaveStateButton({ onSaved }: SaveStateButtonProps) {
     try {
       saveState(saveName.trim(), {
         build: {
-          rawData: buildState.rawData,
           cleanedData: buildState.cleanedData,
           templateRules: buildState.templateRules,
           userRules: buildState.userRules,

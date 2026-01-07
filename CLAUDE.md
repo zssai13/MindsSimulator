@@ -16,7 +16,7 @@
 
 1. `docs/PRODUCT-PRD.md` - Understand WHAT we're building and WHY
 2. `docs/ARCHITECTURE.md` - Understand HOW it's built technically
-3. `docs/BUILDINGPLAN.md` - Understand the FULL PLAN (4 phases, all tasks)
+3. `docs/BUILDINGPLAN.md` - Understand the FULL PLAN (6 phases complete)
 4. `docs/HANDOFF.md` - Understand WHERE we are and what's next
 
 ---
@@ -24,35 +24,43 @@
 ## Project Summary
 
 RepSimulator is a testing app for AI sales reps. It has two tabs:
-- **Tab 1 (Build Phase):** Upload data → Clean with Opus → Generate system prompt
+- **Tab 1 (Build Phase):** Upload pre-cleaned .md files → Generate system prompt with Opus
 - **Tab 2 (Runtime Phase):** Vectorize RAG data → Chat simulation with Haiku/RAG/Sonnet pipeline
 
 The app exposes every step of the AI pipeline for debugging and iteration.
+
+**Note:** Data cleaning was removed in Phase 6. Users now upload pre-cleaned markdown files directly.
 
 ---
 
 ## Current Status
 
+**All Phases COMPLETE - Ready for Vercel Deployment**
+
 **Phase 1 (Tab 1 - Build): COMPLETE**
-- All 7 components built and working
-- 2 API routes (`/api/clean`, `/api/generate-prompt`) tested with Opus
-- Upload → Clean → Generate → Export flow verified
+- Upload pre-cleaned .md files (4 types: transcripts, tickets, website, research)
+- Generate system prompt with Opus
+- Static rules editor
 
 **Phase 2 (Vector DB): COMPLETE**
-- LanceDB configured with Next.js (serverComponentsExternalPackages)
+- Supabase pgvector for cloud vector storage
 - Semantic chunking by 6 content types
 - OpenAI embeddings with batch support
-- `/api/vectorize` and `/api/query` endpoints working
 
 **Phase 3 (Chat System): COMPLETE**
 - Full Haiku → RAG → Sonnet pipeline working
-- `/api/analyze` (Haiku) and `/api/generate` (Sonnet) endpoints
-- Chat UI with collapsible debug panels (Analysis, RAG, Prompt tabs)
-- System prompt auto-loads from Tab 1
+- Chat UI with collapsible debug panels
 
-**Phase 4 (Save/Load): READY TO START**
-- All dependencies met (buildStore, ragStore, chatStore available)
-- Need: storage.ts, SaveStateButton, LoadStateModal, Header
+**Phase 4 (Save/Load): COMPLETE**
+- LocalStorage save/load for all state
+
+**Phase 5 (Supabase Migration): COMPLETE**
+- Migrated from LanceDB to Supabase pgvector
+
+**Phase 6 (Tab 1 Simplification): COMPLETE**
+- Removed Opus data cleaning step
+- Reduced data types from 6 to 4
+- Users upload pre-cleaned .md files directly
 
 ---
 
@@ -61,44 +69,30 @@ The app exposes every step of the AI pipeline for debugging and iteration.
 | File | Purpose |
 |------|---------|
 | `app/page.tsx` | Main page with tab navigation |
-| `store/buildStore.ts` | Tab 1 state management |
+| `store/buildStore.ts` | Tab 1 state management (4 data types) |
 | `store/ragStore.ts` | RAG/vector state management |
 | `store/chatStore.ts` | Chat state management |
 | `lib/anthropic.ts` | Anthropic client + model constants |
-| `lib/vectorstore/index.ts` | LanceDB operations |
+| `lib/supabase.ts` | Supabase pgvector client |
+| `lib/vectorstore/index.ts` | Vector operations |
+| `app/api/generate-prompt/route.ts` | Opus prompt extraction |
 | `app/api/analyze/route.ts` | Haiku message analysis |
 | `app/api/generate/route.ts` | Sonnet response generation |
 | `components/chat/ChatContainer.tsx` | Chat orchestration |
-| `components/chat/ExpandableDebug.tsx` | Debug panel (3 tabs) |
 
 ---
 
 ## Development Phases
 
-> **Full task breakdown in `docs/BUILDINGPLAN.md`**
-
-| Phase | Focus | Components | Status |
-|-------|-------|------------|--------|
-| 1 | Tab 1 - Build Phase | 7 components, 2 API routes | ✅ Complete |
-| 2 | Vector DB (LanceDB) | 4 lib files, 2 API routes, 2 components | ✅ Complete |
-| 3 | Chat System | 5 components, 2 API routes, 1 store | ✅ Complete |
-| 4 | Save/Load State | 3 components, 1 lib file | ⏳ Next |
-
-**Current Position:** Phases 1-3 complete. Ready to start Phase 4 (Save/Load).
-
----
-
-## Original Source Documents
-
-These are the original planning documents from the user:
-
-| Document | Path |
-|----------|------|
-| Conversation Summary | `c:\Users\bills\OneDrive\Desktop\HYROS CODE\Resources\RepSimulatorPRD\files\1-conversation-summary.md` |
-| Original PRD | `c:\Users\bills\OneDrive\Desktop\HYROS CODE\Resources\RepSimulatorPRD\files\2-testing-app-prd.md` |
-| Technical Implementation | `c:\Users\bills\OneDrive\Desktop\HYROS CODE\Resources\RepSimulatorPRD\files\3-technical-implementation.md` |
-
-These contain detailed code examples and the full context of how the system was designed.
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 1 | Tab 1 - Build Phase | ✅ Complete |
+| 2 | Vector DB (Supabase) | ✅ Complete |
+| 3 | Chat System | ✅ Complete |
+| 4 | Save/Load State | ✅ Complete |
+| 5 | Supabase Migration | ✅ Complete |
+| 6 | Tab 1 Simplification | ✅ Complete |
+| 7 | Vercel Deployment | ⏳ Ready |
 
 ---
 
@@ -123,19 +117,21 @@ Before running AI features, ensure `.env.local` has:
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
+SUPABASE_URL=https://...
+SUPABASE_SERVICE_KEY=...
 ```
 
 ---
 
 ## Architecture Quick Reference
 
-### Build Phase (Tab 1)
+### Build Phase (Tab 1) - Simplified
 ```
-Raw Data → [Opus Clean] → Cleaned Data
-                              ↓
-                    [Opus Extract] → Sections
-                              ↓
-              + Static Rules → System Prompt
+Pre-cleaned .md Files (4 types)
+        ↓
+[Opus Extract] → Sections
+        ↓
++ Static Rules → System Prompt
 ```
 
 ### Runtime Phase (Tab 2)
@@ -152,7 +148,6 @@ System Prompt + Analysis + Chunks + History
 ### Models Used
 | Step | Model |
 |------|-------|
-| Data cleaning | Opus |
 | Prompt extraction | Opus |
 | Message analysis | Haiku |
 | Embeddings | OpenAI text-embedding-3-small |
@@ -163,10 +158,10 @@ System Prompt + Analysis + Chunks + History
 ## Data Types
 
 ```typescript
-// For cleaning (Tab 1)
-type DataType = 'transcripts' | 'tickets' | 'website' | 'docs' | 'research' | 'email-guide';
+// For Tab 1 uploads (4 types - simplified in Phase 6)
+type DataType = 'transcripts' | 'tickets' | 'website' | 'research';
 
-// For RAG (Tab 2)
+// For RAG (Tab 2) - unchanged
 type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'website';
 ```
 
@@ -174,16 +169,13 @@ type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'webs
 
 ## What to Build Next
 
-See `docs/HANDOFF.md` for the prioritized task list.
+See `docs/HANDOFF.md` for deployment instructions.
 
-**Phase 4 - Immediate next steps:**
-1. Build `lib/storage.ts` - LocalStorage save/load/delete operations
-2. Define SavedState schema (combine buildStore, ragStore, chatStore)
-3. Build `components/state/SaveStateButton.tsx` - Save button with name modal
-4. Build `components/state/LoadStateModal.tsx` - List saves, load, delete
-5. Build `components/Header.tsx` - App header with save/load buttons
-6. Wire state restoration to all stores
-7. Update `page.tsx` to use Header
+**Immediate next steps:**
+1. Run Supabase SQL setup
+2. Configure Vercel environment variables
+3. Deploy to Vercel
+4. Test end-to-end with real data
 
 ---
 
@@ -197,12 +189,13 @@ See `docs/HANDOFF.md` for the prioritized task list.
 
 ---
 
-## Testing Approach
+## Key Documentation
 
-Build phase-by-phase with validation:
-1. Build Phase 1 → Test upload/clean/generate flow
-2. Build Phase 2 → Test vectorization/query
-3. Build Phase 3 → Test full chat pipeline
-4. Build Phase 4 → Test save/load
-
-User has real data ready for testing.
+| Document | Purpose |
+|----------|---------|
+| `docs/HANDOFF.md` | Current status and next steps |
+| `docs/ARCHITECTURE.md` | Technical architecture |
+| `docs/BUILDINGPLAN.md` | Development phases |
+| `docs/CHANGELOG.md` | Version history |
+| `docs/CLEANED.md` | Phase 6 implementation details |
+| `docs/VECTOR-MIGRATION.md` | Supabase migration plan |

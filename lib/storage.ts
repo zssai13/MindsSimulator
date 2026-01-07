@@ -17,7 +17,6 @@ export interface SavedState {
 
   // Build store state (Tab 1)
   build: {
-    rawData: Record<DataType, string | null>;
     cleanedData: Record<DataType, string | null>;
     templateRules: string;
     userRules: string;

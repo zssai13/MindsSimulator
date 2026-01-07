@@ -13,9 +13,7 @@ const typeLabels: Record<DataType, string> = {
   transcripts: 'Transcripts',
   tickets: 'Support Tickets',
   website: 'Website Content',
-  docs: 'Product Docs',
   research: 'Business Research',
-  'email-guide': 'Email Guide',
 };
 
 export function FileViewModal({ type, content, onClose }: FileViewModalProps) {
@@ -43,15 +41,6 @@ export function FileViewModal({ type, content, onClose }: FileViewModalProps) {
     }
   };
 
-  const formatContent = (content: string): string => {
-    try {
-      const parsed = JSON.parse(content);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return content;
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
@@ -62,7 +51,7 @@ export function FileViewModal({ type, content, onClose }: FileViewModalProps) {
       <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">
-            Cleaned {typeLabels[type]}
+            {typeLabels[type]}
           </h3>
           <div className="flex items-center gap-2">
             <button
@@ -84,7 +73,7 @@ export function FileViewModal({ type, content, onClose }: FileViewModalProps) {
 
         <div className="flex-1 overflow-auto p-4">
           <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-lg">
-            {formatContent(content)}
+            {content}
           </pre>
         </div>
 

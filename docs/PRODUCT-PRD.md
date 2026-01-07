@@ -197,16 +197,14 @@ Why both? The AI can extract WHAT to say from your data, but it can't infer HOW 
 
 ### Tab 1: Build Phase
 
-#### Data Upload & Cleaning
-- 6 upload zones for different data types:
-  - Transcripts (sales calls)
-  - Tickets (support issues)
+#### Data Upload (Simplified in Phase 6)
+- 4 upload zones for pre-cleaned markdown files:
+  - Transcripts (sales call insights)
+  - Tickets (support ticket summaries)
   - Website (marketing content)
-  - Docs (product documentation)
   - Research (business/market research)
-  - Email Guide (cold email strategy)
-- Each zone: upload → clean with Opus → view/download cleaned output
-- Model label "opus" visible on each clean action
+- Each zone: upload pre-cleaned .md file → view/download
+- Note: Data cleaning happens outside the app using external tools
 
 #### System Prompt Generation
 - "Generate System Prompt" button extracts 6 sections from cleaned data:
@@ -337,15 +335,13 @@ Build-time Opus calls: ~$0.50 per file (one-time)
 ## Appendix: The Full Pipeline
 
 ```
-BUILD PHASE (one-time)
-━━━━━━━━━━━━━━━━━━━━━
-Raw Data → [Opus] → Cleaned Data
-                         ↓
-              [Opus] → Extracted Sections
-                         ↓
+BUILD PHASE (one-time) - Simplified in Phase 6
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pre-cleaned .md Files (4 types)
+              ↓
+         [Opus] → Extracted Sections
+              ↓
               + Static Rules → System Prompt
-                         ↓
-              Cleaned Data → [OpenAI] → Vector DB
 
 
 RUNTIME PHASE (per-message)
@@ -360,3 +356,5 @@ System Prompt + Analysis + Chunks + History + Message
               ↓
          [Sonnet] → Response
 ```
+
+Note: Data cleaning removed from the app in Phase 6. Users prepare clean files externally.

@@ -1,7 +1,7 @@
 # RepSimulator Development Handoff
 
 **Last Updated:** January 7, 2026
-**Status:** All 5 Phases Complete | Ready for Vercel Deployment
+**Status:** All 6 Phases Complete | Ready for Vercel Deployment
 **GitHub:** https://github.com/zssai13/MindsSimulator.git
 
 ---
@@ -24,10 +24,10 @@ npm run lint     # Check for issues
 ```
 
 ### 3. Current State
-- ✅ All code complete and working
-- ✅ Build passes with no errors
-- ✅ Pushed to GitHub (commit `5c089ce`)
-- ⏳ Awaiting Vercel deployment
+- All code complete and working
+- Build passes with no errors
+- Phase 6 (Tab 1 Simplification) complete
+- Awaiting Vercel deployment
 
 ---
 
@@ -53,11 +53,35 @@ npm run lint     # Check for issues
 │  PHASE 5        ████████████████████████████████████████  100%      │
 │  (Supabase)     ✅ COMPLETE - Migration done, build verified         │
 │                                                                      │
+│  PHASE 6        ████████████████████████████████████████  100%      │
+│  (Tab 1 Simple) ✅ COMPLETE - Cleaning removed, 4 data types         │
+│                                                                      │
 │  DEPLOYMENT     ████████████████████████████████████████  READY     │
 │  (Vercel)       ⏳ SQL setup needed, then deploy                     │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## What Changed in Phase 6
+
+**Goal:** Remove Opus data cleaning from Tab 1. Users now upload pre-cleaned .md files directly.
+
+### Summary
+- Removed `/api/clean` endpoint and cleaning prompts
+- Reduced data types from 6 to 4
+- Simplified DataUploadZone to direct upload (no cleaning button)
+- Tab 1 flow: Upload .md → Generate Prompt (no cleaning step)
+
+### Data Types (New)
+```typescript
+type DataType = 'transcripts' | 'tickets' | 'website' | 'research';
+// Removed: 'docs', 'email-guide'
+```
+
+### Files Changed
+See `docs/CLEANED.md` for complete implementation details.
 
 ---
 
@@ -136,78 +160,24 @@ npx vercel --prod
 | Purpose | File |
 |---------|------|
 | Main page | `app/page.tsx` |
-| Supabase client | `lib/supabase.ts` |
-| Vector operations | `lib/vectorstore/index.ts` |
-| Embeddings | `lib/vectorstore/embeddings.ts` |
-| Chunking | `lib/vectorstore/chunk.ts` |
 | Build state | `store/buildStore.ts` |
 | RAG state | `store/ragStore.ts` |
 | Chat state | `store/chatStore.ts` |
-| Migration plan | `docs/VECTOR-MIGRATION.md` |
-
----
-
-## Environment Setup
-
-### Local (.env.local) ✅ CONFIGURED
-```bash
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-proj-...
-SUPABASE_URL=https://hxtsyipupfbwrububeta.supabase.co
-SUPABASE_SERVICE_KEY=sb_secret_...
-```
-
----
-
-## Git Commits History
-
-| Hash | Description |
-|------|-------------|
-| `5c089ce` | Migrate from LanceDB to Supabase pgvector |
-| `4d8b4d8` | Update docs for Supabase migration - session handoff |
-| `715ac9a` | Add Supabase pgvector migration plan |
-| `52c4cf9` | Fix build-time API client initialization |
-| `733f8ea` | Fix TypeScript build error in LoadStateModal |
-| `3a5424b` | Initial commit: RepSimulator Testing App |
-
----
-
-## What Was Done (Session Summary)
-
-### January 7, 2026 - Supabase Migration Session
-
-**Completed:**
-1. ✅ Migrated from LanceDB to Supabase pgvector
-2. ✅ Created `lib/supabase.ts` - lazy-initialized client
-3. ✅ Replaced `lib/vectorstore/index.ts` with Supabase implementation
-4. ✅ Updated dependencies (removed 258MB LanceDB, added lightweight Supabase)
-5. ✅ Updated `next.config.mjs` (removed LanceDB webpack config)
-6. ✅ Build verified - passes with no errors
-7. ✅ Pushed to GitHub
-8. ✅ Updated all documentation
-
-**Why Migration Was Needed:**
-- LanceDB native binaries (~258MB) exceeded Vercel's 250MB limit
-- LanceDB uses local file storage (ephemeral on serverless)
-- Supabase is cloud-hosted and lightweight
-
----
-
-## Testing After Deployment
-
-1. **Tab 1 Test:** Upload file → Clean with Opus → Generate prompt
-2. **Tab 2 Test:** Upload RAG content → Vectorize → Chat
-3. **Chat Test:** Send message → See Haiku analysis → See RAG results → Get Sonnet response
-4. **Save/Load Test:** Save state → Reload page → Load state
+| Supabase client | `lib/supabase.ts` |
+| Vector operations | `lib/vectorstore/index.ts` |
+| Tab 1 layout | `components/tabs/Tab1BuildPhase.tsx` |
+| Tab 2 layout | `components/tabs/Tab2RuntimePhase.tsx` |
+| Chat orchestration | `components/chat/ChatContainer.tsx` |
 
 ---
 
 ## Architecture Summary
 
 ```
-BUILD PHASE (Tab 1)
-━━━━━━━━━━━━━━━━━━━━━
-Raw Data → [Opus] → Cleaned Data → [Opus] → System Prompt
+BUILD PHASE (Tab 1) - Simplified in Phase 6
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pre-cleaned .md Files → [Opus] → System Prompt
+  (4 types)
 
 RUNTIME PHASE (Tab 2)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -232,25 +202,17 @@ System Prompt + Analysis + Chunks + History
 | State | Zustand |
 | Vector DB | Supabase pgvector |
 | Embeddings | OpenAI text-embedding-3-small |
-| LLM | Anthropic Claude (Opus/Sonnet/Haiku) |
+| LLM | Anthropic Claude (Opus, Sonnet, Haiku) |
 | Deployment | Vercel |
 
 ---
 
-## Troubleshooting
+## Testing After Deployment
 
-### Build Errors
-- All API clients use lazy initialization
-- Check `.env.local` for missing credentials
-
-### Vector Operations Fail
-- Ensure Supabase SQL setup is complete
-- Check Supabase credentials in environment
-
-### Chat Not Working
-- Verify system prompt is set (Tab 1 → Tab 2)
-- Check RAG content is vectorized
-- Look at debug panels for error details
+1. **Tab 1 Test:** Upload .md file → Generate prompt (no cleaning step)
+2. **Tab 2 Test:** Upload RAG content → Vectorize → Chat
+3. **Chat Test:** Send message → See Haiku analysis → See RAG results → Get Sonnet response
+4. **Save/Load Test:** Save state → Reload page → Load state
 
 ---
 
@@ -259,3 +221,22 @@ System Prompt + Analysis + Chunks + History
 1. End-to-end testing with real data
 2. Performance monitoring
 3. Consider future enhancements (see BUILDINGPLAN.md)
+4. User feedback collection
+
+---
+
+## Session Summary - January 7, 2026
+
+### Phase 6 Completed
+1. ✅ Removed `/api/clean` route and `cleaning-prompts.ts`
+2. ✅ Simplified `buildStore.ts` (4 types, no rawData/cleaningInProgress)
+3. ✅ Updated all components for direct upload flow
+4. ✅ Added backward compatibility for old saved states
+5. ✅ Build verified - passes with no errors
+6. ✅ Updated all documentation
+
+### Why This Change
+- Data cleaning will happen outside the app
+- Users prepare clean MD files externally
+- Simpler flow: Upload → Generate (no cleaning step)
+- Reduced from 6 data types to 4

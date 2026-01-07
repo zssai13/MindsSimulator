@@ -97,7 +97,7 @@ export function SystemPromptGenerator() {
 
       {!hasCleanedData && (
         <div className="bg-yellow-50 text-yellow-800 rounded-lg p-3 text-sm">
-          Upload and clean data first to generate the system prompt.
+          Upload data first to generate the system prompt.
         </div>
       )}
 

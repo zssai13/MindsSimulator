@@ -13,6 +13,57 @@ All notable changes to RepSimulator are documented here.
 
 ---
 
+## [0.6.0] - 2026-01-07
+
+### Phase 6: Tab 1 Simplification - Remove Data Cleaning
+
+**Goal:** Remove the Opus data cleaning step from Tab 1. Users now upload pre-cleaned Markdown files directly.
+
+**Rationale:** Data cleaning will happen outside the app using external tools. Users prepare clean MD files and upload them directly to continue with system prompt generation.
+
+### Removed
+- `app/api/clean/route.ts` - Data cleaning API endpoint
+- `lib/prompts/cleaning-prompts.ts` - Cleaning prompts for 6 data types
+- `rawData` state from buildStore (no longer needed)
+- `cleaningInProgress` state from buildStore
+- "Clean with Opus" button and flow
+- 2 data types: `docs` and `email-guide`
+
+### Changed
+- `store/buildStore.ts` - Simplified to 4 data types, removed rawData/cleaningInProgress
+- `lib/storage.ts` - Removed rawData from SavedState schema
+- `app/api/generate-prompt/route.ts` - Updated CleanedData interface to 4 types
+- `components/upload/DataUploadZone.tsx` - Simplified to direct upload (no cleaning)
+- `components/upload/CleanedFileDisplay.tsx` - Updated to 4 types, .md download format
+- `components/upload/FileViewModal.tsx` - Updated type labels
+- `components/tabs/Tab1BuildPhase.tsx` - Reduced to 4 upload zones
+- `components/state/SaveStateButton.tsx` - Removed rawData from saved state
+- `components/state/LoadStateModal.tsx` - Updated restore logic with backward compatibility
+
+### Data Types
+```typescript
+// BEFORE (6 types)
+type DataType = 'transcripts' | 'tickets' | 'website' | 'docs' | 'research' | 'email-guide';
+
+// AFTER (4 types)
+type DataType = 'transcripts' | 'tickets' | 'website' | 'research';
+```
+
+### New Tab 1 Flow
+```
+BEFORE: Raw File → Upload → [Opus Clean] → Cleaned Data → Generate Prompt
+AFTER:  Pre-cleaned .md File → Upload → Generate Prompt
+```
+
+### Backward Compatibility
+- Old saved states with 6 types load gracefully (only 4 types restored)
+- Missing fields handled with optional chaining
+
+### Documentation
+- Added `docs/CLEANED.md` - Implementation plan and summary
+
+---
+
 ## [0.5.0] - 2026-01-07
 
 ### Phase 5: Supabase pgvector Migration
