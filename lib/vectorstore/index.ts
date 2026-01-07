@@ -163,12 +163,10 @@ export async function getChunkCount(): Promise<number> {
  */
 export async function getCountByType(): Promise<Record<RagType, number>> {
   const counts: Record<RagType, number> = {
-    docs: 0,
-    case_study: 0,
-    pricing: 0,
-    faq: 0,
-    competitive: 0,
+    transcripts: 0,
+    tickets: 0,
     website: 0,
+    research: 0,
   };
 
   const supabase = getSupabase();

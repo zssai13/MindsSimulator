@@ -27,7 +27,7 @@ RETURN EXACTLY THIS JSON STRUCTURE (no markdown, no explanation, just valid JSON
   "intent": "What the prospect is really trying to accomplish with this message",
   "needs_search": true/false,
   "search_queries": ["query1", "query2"] or null if needs_search is false,
-  "content_types": ["docs", "pricing", "faq", "case_study", "competitive", "website"] or null,
+  "content_types": ["transcripts", "tickets", "website", "research"] or null,
   "response_strategy": {
     "approach": "How to approach the response (e.g., 'address concern directly', 'build curiosity', 'provide proof')",
     "tone": "professional|casual|empathetic|enthusiastic|consultative",

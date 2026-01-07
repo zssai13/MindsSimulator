@@ -83,8 +83,8 @@ export function ChatContainer() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             queries: analysis.search_queries,
-            contentTypes: analysis.content_types || undefined,
-            limit: 5,
+            // Search all types for maximum thoroughness
+            limit: 8,
           }),
         });
 

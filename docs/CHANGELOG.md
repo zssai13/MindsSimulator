@@ -13,6 +13,51 @@ All notable changes to RepSimulator are documented here.
 
 ---
 
+## [0.7.0] - 2026-01-07
+
+### Phase 7: Tab 2 RAG Update + Rate Limit Fix
+
+**Goal:** Align Tab 2 RAG types with Tab 1 data types and fix API rate limit issues.
+
+**Rationale:** Users will re-upload the same cleaned .md files from Tab 1 into Tab 2 for vectorization. Simplifies workflow and ensures consistency.
+
+### Changed - RAG Types
+- `lib/vectorstore/chunk.ts` - Updated RagType from 6 → 4 types, simplified to single markdown-based chunking
+- `lib/vectorstore/index.ts` - Updated getCountByType for 4 types
+- `store/ragStore.ts` - Updated state, config, and UI labels for 4 types
+- `app/api/analyze/route.ts` - Updated Haiku prompt with new content_types
+- `components/chat/ChatContainer.tsx` - Removed contentTypes filter (now searches ALL types)
+- `components/state/LoadStateModal.tsx` - Added backward compatibility for old 6-type saves
+
+### RAG Types
+```typescript
+// BEFORE (6 types)
+type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'website';
+
+// AFTER (4 types - matches Tab 1)
+type RagType = 'transcripts' | 'tickets' | 'website' | 'research';
+```
+
+### Changed - Rate Limit Fix
+- `app/api/generate-prompt/route.ts` - Changed from parallel to sequential API calls with 1s delay
+
+**Problem:** 6 parallel Opus API calls exceeded 30,000 token/minute rate limit
+**Solution:** Process sections sequentially with delays between calls
+
+### Chunking Strategy
+- Simplified from 6 type-specific chunkers to single markdown-based strategy
+- All content now split by `##` headers with paragraph fallback
+- More maintainable and consistent
+
+### Search Behavior
+- Now searches ALL 4 types for every query (no filtering)
+- Increased limit from 5 to 8 results for better coverage
+
+### Documentation
+- Added `docs/RAG-UPDATE.md` - Implementation plan and summary
+
+---
+
 ## [0.6.0] - 2026-01-07
 
 ### Phase 6: Tab 1 Simplification - Remove Data Cleaning

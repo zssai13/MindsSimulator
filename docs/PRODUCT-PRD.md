@@ -231,12 +231,16 @@ Why both? The AI can extract WHAT to say from your data, but it can't infer HOW 
 
 ### Tab 2: Runtime Phase
 
-#### RAG Data Section
-- 6 upload zones for RAG content:
-  - Docs, Case Studies, Pricing, FAQ, Competitive, Website
+#### RAG Data Section (Updated in Phase 7)
+- 4 upload zones for RAG content (matches Tab 1 types):
+  - Transcripts (sales call insights)
+  - Tickets (support ticket summaries)
+  - Website (marketing content)
+  - Research (market research, ICP, competitive)
 - Status indicators: Empty → Uploaded → Vectorizing → Ready
 - "Vectorize All" button
 - Model label "openai" (embeddings)
+- Note: Same files from Tab 1 can be re-uploaded here for vectorization
 
 #### Context Inputs
 - System prompt (auto-loaded from Tab 1 or manual paste)
@@ -344,17 +348,23 @@ Pre-cleaned .md Files (4 types)
               + Static Rules → System Prompt
 
 
-RUNTIME PHASE (per-message)
-━━━━━━━━━━━━━━━━━━━━━━━━━━
+RUNTIME PHASE (per-message) - Updated in Phase 7
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RAG Data (4 types: transcripts, tickets, website, research)
+              ↓
+         [OpenAI] → Vectorize → Supabase pgvector
+
 Message + Page Context + History
               ↓
          [Haiku] → Analysis (stage, warmth, queries, strategy)
               ↓
-         [OpenAI] → RAG Query → Retrieved Chunks
+         [OpenAI] → RAG Query → Search ALL types → Retrieved Chunks
               ↓
 System Prompt + Analysis + Chunks + History + Message
               ↓
          [Sonnet] → Response
 ```
 
-Note: Data cleaning removed from the app in Phase 6. Users prepare clean files externally.
+Notes:
+- Data cleaning removed from the app in Phase 6. Users prepare clean files externally.
+- RAG types updated in Phase 7 to match Tab 1 types. Search now queries all types for maximum coverage.

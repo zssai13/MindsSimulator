@@ -1,7 +1,7 @@
 # RepSimulator Development Handoff
 
 **Last Updated:** January 7, 2026
-**Status:** All 6 Phases Complete | Ready for Vercel Deployment
+**Status:** All 7 Phases Complete | Ready for Vercel Deployment
 **GitHub:** https://github.com/zssai13/MindsSimulator.git
 
 ---
@@ -27,6 +27,7 @@ npm run lint     # Check for issues
 - All code complete and working
 - Build passes with no errors
 - Phase 6 (Tab 1 Simplification) complete
+- Phase 7 (Tab 2 RAG Update + Rate Limit Fix) complete
 - Awaiting Vercel deployment
 
 ---
@@ -55,6 +56,9 @@ npm run lint     # Check for issues
 │                                                                      │
 │  PHASE 6        ████████████████████████████████████████  100%      │
 │  (Tab 1 Simple) ✅ COMPLETE - Cleaning removed, 4 data types         │
+│                                                                      │
+│  PHASE 7        ████████████████████████████████████████  100%      │
+│  (Tab 2 RAG)    ✅ COMPLETE - RAG types aligned, rate limit fixed    │
 │                                                                      │
 │  DEPLOYMENT     ████████████████████████████████████████  READY     │
 │  (Vercel)       ⏳ SQL setup needed, then deploy                     │
@@ -235,8 +239,27 @@ System Prompt + Analysis + Chunks + History
 5. ✅ Build verified - passes with no errors
 6. ✅ Updated all documentation
 
-### Why This Change
-- Data cleaning will happen outside the app
-- Users prepare clean MD files externally
-- Simpler flow: Upload → Generate (no cleaning step)
-- Reduced from 6 data types to 4
+### Phase 7 Completed
+1. ✅ Updated RAG types from 6 to 4 (matches Tab 1: transcripts, tickets, website, research)
+2. ✅ Simplified chunking to single markdown-based strategy
+3. ✅ RAG search now queries ALL types (no content type filtering)
+4. ✅ Fixed rate limit issue (sequential API calls with delays)
+5. ✅ Added backward compatibility for old 6-type saves
+6. ✅ Build verified - passes with no errors
+7. ✅ Updated all documentation
+
+### Key Files Changed in Phase 7
+- `lib/vectorstore/chunk.ts` - 4 RAG types, unified chunking
+- `lib/vectorstore/index.ts` - Updated getCountByType
+- `store/ragStore.ts` - State, config, labels
+- `app/api/analyze/route.ts` - Haiku prompt
+- `app/api/generate-prompt/route.ts` - Sequential processing (rate limit fix)
+- `components/chat/ChatContainer.tsx` - Search all types
+- `components/state/LoadStateModal.tsx` - Backward compatibility
+
+### Why These Changes
+- Tab 1 and Tab 2 now use same 4 data types for consistency
+- Users can re-upload same files from Tab 1 to Tab 2
+- Simplified chunking is more maintainable
+- Sequential API calls prevent rate limit errors
+- Search all types ensures maximum thoroughness

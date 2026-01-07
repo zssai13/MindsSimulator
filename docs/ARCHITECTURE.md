@@ -1,7 +1,7 @@
 # RepSimulator Technical Architecture
 
 **Last Updated:** January 7, 2026
-**Status:** Phase 1-6 Complete | Ready for Vercel Deployment
+**Status:** Phase 1-7 Complete | Ready for Vercel Deployment
 
 ---
 
@@ -81,7 +81,7 @@ Chunks → OpenAI Embeddings → Supabase pgvector (PostgreSQL)
 create table rag_chunks (
   id text primary key,
   text text not null,
-  type text not null,           -- docs, case_study, pricing, faq, competitive, website
+  type text not null,           -- transcripts, tickets, website, research
   topic text,
   embedding vector(1536),       -- OpenAI embedding dimension
   created_at timestamp with time zone default now()
@@ -196,21 +196,23 @@ MindsSimulator/
 Note: Data cleaning removed in Phase 6. Users upload pre-cleaned markdown files directly.
 ```
 
-### RAG Vectorization Flow (✅ COMPLETE)
+### RAG Vectorization Flow (✅ COMPLETE - Updated in Phase 7)
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  RAG Files   │────▶│   Chunking   │────▶│  Embedding   │────▶│  Supabase    │
-│  (6 types)   │     │  (semantic)  │     │   [OpenAI]   │     │  pgvector    │
+│  (4 types)   │     │  (markdown)  │     │   [OpenAI]   │     │  pgvector    │
 └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
 
-Chunking Strategy by Type:
-• docs       → By markdown headers (##, ###)
-• case_study → By customer story / numbered items
-• pricing    → By plan/tier names
-• faq        → By Q&A pairs
-• competitive→ By competitor sections
-• website    → By page sections
+RAG Types (matches Tab 1):
+• transcripts → Sales call insights
+• tickets     → Support ticket summaries
+• website     → Marketing and website copy
+• research    → Market research, ICP, competitive
+
+Chunking Strategy (Unified):
+• All types use markdown-based chunking (split by ## headers)
+• Fallback to paragraph-based chunking if no headers found
 ```
 
 ### Runtime Phase Flow (✅ COMPLETE)
@@ -236,7 +238,7 @@ Chunking Strategy by Type:
 │  ┌────────────────────┐                                  │
 │  │    /api/query      │  If needs_search: true           │
 │  │    [OpenAI]        │  Query via Supabase pgvector     │
-│  │                    │  Filter by content_types         │
+│  │                    │  Search ALL 4 types (no filter)  │
 │  └────────────────────┘                                  │
 │              │                                            │
 │              ▼                                            │
@@ -290,7 +292,7 @@ Generates response with Sonnet using assembled prompt.
 - Loading states
 
 ### ragStore (Tab 2 - RAG)
-- File contents for 6 RAG types
+- File contents for 4 RAG types (transcripts, tickets, website, research)
 - Status per type: empty | uploaded | vectorizing | ready
 - Chunk counts after vectorization
 - Error handling
@@ -349,7 +351,8 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 | **4** | Save/Load State | ✅ COMPLETE |
 | **5** | Supabase Migration | ✅ COMPLETE |
 | **6** | Tab 1 Simplification (Remove Cleaning) | ✅ COMPLETE |
-| **7** | Vercel Deployment | ⏳ READY |
+| **7** | Tab 2 RAG Update + Rate Limit Fix | ✅ COMPLETE |
+| **8** | Vercel Deployment | ⏳ READY |
 
 ---
 
@@ -366,6 +369,8 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 5. **State Persistence** - LocalStorage works well for saving app state but doesn't persist vector data (need cloud DB for that).
 
 6. **External Data Cleaning** - Separating data cleaning from the app allows more flexibility. Users can use specialized tools for cleaning and upload pre-processed files.
+
+7. **API Rate Limits** - Parallel API calls can exceed token/minute limits. Sequential processing with delays is safer for large payloads.
 
 ---
 
@@ -401,3 +406,19 @@ See `docs/VECTOR-MIGRATION.md` for complete migration plan.
 | `components/state/LoadStateModal.tsx` | UPDATE - Backward compatibility |
 
 See `docs/CLEANED.md` for complete implementation plan.
+
+---
+
+## Files Changed in Phase 7 (Tab 2 RAG Update)
+
+| File | Action |
+|------|--------|
+| `lib/vectorstore/chunk.ts` | UPDATE - 4 RAG types, unified markdown chunking |
+| `lib/vectorstore/index.ts` | UPDATE - getCountByType for 4 types |
+| `store/ragStore.ts` | UPDATE - State, config, UI labels for 4 types |
+| `app/api/analyze/route.ts` | UPDATE - Haiku prompt content_types |
+| `app/api/generate-prompt/route.ts` | UPDATE - Sequential API calls (rate limit fix) |
+| `components/chat/ChatContainer.tsx` | UPDATE - Search all types, no filtering |
+| `components/state/LoadStateModal.tsx` | UPDATE - Backward compatibility for 6-type saves |
+
+See `docs/RAG-UPDATE.md` for complete implementation plan.

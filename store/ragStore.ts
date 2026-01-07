@@ -35,30 +35,24 @@ export interface RagState {
 }
 
 const initialFiles: Record<RagType, string | null> = {
-  docs: null,
-  case_study: null,
-  pricing: null,
-  faq: null,
-  competitive: null,
+  transcripts: null,
+  tickets: null,
   website: null,
+  research: null,
 };
 
 const initialStatus: Record<RagType, RagStatus> = {
-  docs: 'empty',
-  case_study: 'empty',
-  pricing: 'empty',
-  faq: 'empty',
-  competitive: 'empty',
+  transcripts: 'empty',
+  tickets: 'empty',
   website: 'empty',
+  research: 'empty',
 };
 
 const initialChunkCounts: Record<RagType, number> = {
-  docs: 0,
-  case_study: 0,
-  pricing: 0,
-  faq: 0,
-  competitive: 0,
+  transcripts: 0,
+  tickets: 0,
   website: 0,
+  research: 0,
 };
 
 export const useRagStore = create<RagState>((set, get) => ({
@@ -122,37 +116,27 @@ export const useRagStore = create<RagState>((set, get) => ({
 
 // RAG type configuration for UI
 export const RAG_TYPES: RagType[] = [
-  'docs',
-  'case_study',
-  'pricing',
-  'faq',
-  'competitive',
+  'transcripts',
+  'tickets',
   'website',
+  'research',
 ];
 
 export const RAG_TYPE_CONFIG: Record<RagType, { label: string; description: string }> = {
-  docs: {
-    label: 'Product Docs',
-    description: 'Features, capabilities, technical details',
+  transcripts: {
+    label: 'Sales Transcripts',
+    description: 'Sales call insights and winning patterns',
   },
-  case_study: {
-    label: 'Case Studies',
-    description: 'Customer success stories and results',
-  },
-  pricing: {
-    label: 'Pricing',
-    description: 'Plans, pricing tiers, packages',
-  },
-  faq: {
-    label: 'FAQ',
-    description: 'Common questions and answers',
-  },
-  competitive: {
-    label: 'Competitive',
-    description: 'Competitor comparisons and positioning',
+  tickets: {
+    label: 'Support Tickets',
+    description: 'Customer support summaries and common issues',
   },
   website: {
-    label: 'Website',
-    description: 'Marketing pages, landing pages',
+    label: 'Website Content',
+    description: 'Marketing pages and website copy',
+  },
+  research: {
+    label: 'Deep Research',
+    description: 'Market research, ICP definitions, competitive analysis',
   },
 };

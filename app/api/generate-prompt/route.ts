@@ -48,7 +48,11 @@ export async function POST(request: NextRequest) {
       'competitive',
     ];
 
-    const extractionPromises = sectionTypes.map(async (section) => {
+    // Process sections SEQUENTIALLY to avoid rate limits
+    // Each request includes all data, so parallel requests would exceed token limits
+    const extractedResults: Array<{ section: ExtractionSection; content: string }> = [];
+
+    for (const section of sectionTypes) {
       const prompt = EXTRACTION_PROMPTS[section];
 
       const message = await anthropic.messages.create({
@@ -66,10 +70,11 @@ export async function POST(request: NextRequest) {
         ? message.content[0].text
         : '';
 
-      return { section, content };
-    });
+      extractedResults.push({ section, content });
 
-    const extractedResults = await Promise.all(extractionPromises);
+      // Small delay between requests to stay under rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     const sections: Record<string, string> = {};
     extractedResults.forEach(({ section, content }) => {

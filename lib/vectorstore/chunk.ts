@@ -1,4 +1,4 @@
-export type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'website';
+export type RagType = 'transcripts' | 'tickets' | 'website' | 'research';
 
 export interface Chunk {
   id: string;
@@ -8,8 +8,8 @@ export interface Chunk {
 }
 
 /**
- * Semantic chunking strategies by content type
- * Each type is split by meaningful semantic units rather than character count
+ * Simplified markdown-based chunking strategy
+ * All content types use the same approach: split by markdown headers
  */
 
 // Generate unique ID for a chunk
@@ -26,147 +26,29 @@ function cleanText(text: string): string {
 }
 
 /**
- * Split docs by feature/concept sections
- * Looks for markdown headers or section dividers
+ * Split content by markdown headers (##, ###)
+ * This is the single chunking strategy for all content types
  */
-function chunkDocs(content: string): string[] {
+function chunkMarkdown(content: string): string[] {
   const cleaned = cleanText(content);
 
   // Split by markdown headers (##, ###) or horizontal rules
   const sections = cleaned.split(/(?=^#{2,3}\s)|(?=^---$)/m);
 
-  return sections
+  const chunks = sections
     .map(s => s.trim())
     .filter(s => s.length > 50); // Filter out empty or very short sections
-}
 
-/**
- * Split case studies by customer story
- * Each case study typically has a clear structure
- */
-function chunkCaseStudy(content: string): string[] {
-  const cleaned = cleanText(content);
-
-  // Try to split by "Case Study:" or "Customer:" headers, or numbered items
-  const patterns = [
-    /(?=Case Study[:\s])/gi,
-    /(?=Customer[:\s])/gi,
-    /(?=^#{2,3}\s)/m,
-    /(?=^\d+\.\s+[A-Z])/m,
-  ];
-
-  for (const pattern of patterns) {
-    const sections = cleaned.split(pattern);
-    if (sections.length > 1) {
-      return sections.map(s => s.trim()).filter(s => s.length > 100);
-    }
+  // If no headers found, fall back to paragraph-based chunking
+  if (chunks.length <= 1 && cleaned.length > 500) {
+    return splitByParagraphs(cleaned, 500);
   }
 
-  // Fallback: split by double newlines for paragraph-based chunks
-  return splitByParagraphs(cleaned, 500);
+  return chunks;
 }
 
 /**
- * Split pricing by plan/tier
- * Looks for plan names or pricing tiers
- */
-function chunkPricing(content: string): string[] {
-  const cleaned = cleanText(content);
-
-  // Common pricing tier patterns
-  const patterns = [
-    /(?=(?:Basic|Starter|Pro|Professional|Enterprise|Premium|Free|Team|Business)\s*(?:Plan|Tier)?[:\s])/gi,
-    /(?=^#{2,3}\s)/m,
-    /(?=^\$\d+)/m,
-  ];
-
-  for (const pattern of patterns) {
-    const sections = cleaned.split(pattern);
-    if (sections.length > 1) {
-      return sections.map(s => s.trim()).filter(s => s.length > 50);
-    }
-  }
-
-  // Fallback: keep as single chunk if no clear tiers
-  return cleaned.length > 50 ? [cleaned] : [];
-}
-
-/**
- * Split FAQ by question/answer pairs
- * Each Q&A pair becomes a chunk
- */
-function chunkFaq(content: string): string[] {
-  const cleaned = cleanText(content);
-
-  // Split by Q: pattern or numbered questions
-  const patterns = [
-    /(?=Q[:\s])/gi,
-    /(?=Question[:\s])/gi,
-    /(?=^\d+\.\s*(?:Q|What|How|Why|When|Where|Can|Is|Are|Do|Does|Will|Would|Should))/gim,
-    /(?=^#{2,3}\s)/m,
-  ];
-
-  for (const pattern of patterns) {
-    const sections = cleaned.split(pattern);
-    if (sections.length > 1) {
-      return sections.map(s => s.trim()).filter(s => s.length > 30);
-    }
-  }
-
-  // Fallback: split by double newlines
-  return splitByParagraphs(cleaned, 300);
-}
-
-/**
- * Split competitive intel by competitor
- */
-function chunkCompetitive(content: string): string[] {
-  const cleaned = cleanText(content);
-
-  // Look for competitor names or vs patterns
-  const patterns = [
-    /(?=^#{2,3}\s)/m,
-    /(?=vs\.?\s)/gi,
-    /(?=Competitor[:\s])/gi,
-  ];
-
-  for (const pattern of patterns) {
-    const sections = cleaned.split(pattern);
-    if (sections.length > 1) {
-      return sections.map(s => s.trim()).filter(s => s.length > 100);
-    }
-  }
-
-  // Fallback: paragraph-based
-  return splitByParagraphs(cleaned, 500);
-}
-
-/**
- * Split website content by page section
- */
-function chunkWebsite(content: string): string[] {
-  const cleaned = cleanText(content);
-
-  // Split by headers or section markers
-  const patterns = [
-    /(?=^#{2,3}\s)/m,
-    /(?=^---$)/m,
-    /(?=<section|<div)/gi,
-  ];
-
-  for (const pattern of patterns) {
-    const sections = cleaned.split(pattern);
-    if (sections.length > 1) {
-      return sections.map(s => s.trim()).filter(s => s.length > 100);
-    }
-  }
-
-  // Fallback: paragraph-based
-  return splitByParagraphs(cleaned, 600);
-}
-
-/**
- * Helper: Split by paragraphs with max size
+ * Helper: Split by paragraphs with max size (fallback)
  */
 function splitByParagraphs(text: string, maxSize: number): string[] {
   const paragraphs = text.split(/\n\n+/);
@@ -190,33 +72,10 @@ function splitByParagraphs(text: string, maxSize: number): string[] {
 }
 
 /**
- * Main chunking function - routes to type-specific chunker
+ * Main chunking function - uses unified markdown strategy for all types
  */
 export function chunkContent(content: string, type: RagType): Chunk[] {
-  let textChunks: string[];
-
-  switch (type) {
-    case 'docs':
-      textChunks = chunkDocs(content);
-      break;
-    case 'case_study':
-      textChunks = chunkCaseStudy(content);
-      break;
-    case 'pricing':
-      textChunks = chunkPricing(content);
-      break;
-    case 'faq':
-      textChunks = chunkFaq(content);
-      break;
-    case 'competitive':
-      textChunks = chunkCompetitive(content);
-      break;
-    case 'website':
-      textChunks = chunkWebsite(content);
-      break;
-    default:
-      textChunks = splitByParagraphs(cleanText(content), 500);
-  }
+  const textChunks = chunkMarkdown(content);
 
   // Convert to Chunk objects with IDs
   return textChunks.map((text, index) => ({
@@ -242,10 +101,8 @@ export function chunkFiles(files: Array<{ type: RagType; content: string }>): Ch
 
 // RAG type labels for UI
 export const RAG_TYPE_LABELS: Record<RagType, string> = {
-  docs: 'Product Documentation',
-  case_study: 'Case Studies',
-  pricing: 'Pricing Information',
-  faq: 'FAQ',
-  competitive: 'Competitive Intel',
+  transcripts: 'Sales Call Transcripts',
+  tickets: 'Support Tickets',
   website: 'Website Content',
+  research: 'Deep Research',
 };

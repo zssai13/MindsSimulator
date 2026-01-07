@@ -44,7 +44,7 @@ The app exposes every step of the AI pipeline for debugging and iteration.
 
 **Phase 2 (Vector DB): COMPLETE**
 - Supabase pgvector for cloud vector storage
-- Semantic chunking by 6 content types
+- Semantic chunking (unified markdown-based)
 - OpenAI embeddings with batch support
 
 **Phase 3 (Chat System): COMPLETE**
@@ -61,6 +61,12 @@ The app exposes every step of the AI pipeline for debugging and iteration.
 - Removed Opus data cleaning step
 - Reduced data types from 6 to 4
 - Users upload pre-cleaned .md files directly
+
+**Phase 7 (Tab 2 RAG Update): COMPLETE**
+- RAG types updated from 6 to 4 (matches Tab 1)
+- Unified chunking strategy (markdown-based)
+- RAG search queries ALL types (no filtering)
+- Sequential API calls to avoid rate limits
 
 ---
 
@@ -92,7 +98,8 @@ The app exposes every step of the AI pipeline for debugging and iteration.
 | 4 | Save/Load State | ✅ Complete |
 | 5 | Supabase Migration | ✅ Complete |
 | 6 | Tab 1 Simplification | ✅ Complete |
-| 7 | Vercel Deployment | ⏳ Ready |
+| 7 | Tab 2 RAG Update | ✅ Complete |
+| 8 | Vercel Deployment | ⏳ Ready |
 
 ---
 
@@ -161,9 +168,11 @@ System Prompt + Analysis + Chunks + History
 // For Tab 1 uploads (4 types - simplified in Phase 6)
 type DataType = 'transcripts' | 'tickets' | 'website' | 'research';
 
-// For RAG (Tab 2) - unchanged
-type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'website';
+// For RAG (Tab 2) - aligned with Tab 1 in Phase 7
+type RagType = 'transcripts' | 'tickets' | 'website' | 'research';
 ```
+
+**Note:** Tab 1 and Tab 2 now use the same 4 data types. Users can re-upload the same pre-cleaned .md files from Tab 1 to Tab 2 for vectorization.
 
 ---
 
@@ -198,4 +207,5 @@ See `docs/HANDOFF.md` for deployment instructions.
 | `docs/BUILDINGPLAN.md` | Development phases |
 | `docs/CHANGELOG.md` | Version history |
 | `docs/CLEANED.md` | Phase 6 implementation details |
+| `docs/RAG-UPDATE.md` | Phase 7 implementation details |
 | `docs/VECTOR-MIGRATION.md` | Supabase migration plan |

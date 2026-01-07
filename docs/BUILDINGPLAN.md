@@ -1,10 +1,10 @@
 # RepSimulator Development Plan
 
-**Last Updated:** All Phases Complete (Phase 5 Session - January 7, 2026)
+**Last Updated:** All Phases Complete (Phase 7 Session - January 7, 2026)
 
 ## Overview
 
-This document outlines the complete build plan to go from foundation to finished app. We build in 5 phases, validating each before moving to the next.
+This document outlines the complete build plan to go from foundation to finished app. We build in 7 phases, validating each before moving to the next.
 
 ---
 
@@ -17,6 +17,8 @@ This document outlines the complete build plan to go from foundation to finished
 | **3** | Chat System | Full pipeline with debug | 5 components, 2 API routes, 1 store | ✅ COMPLETE |
 | **4** | Save/Load | State persistence | 2 components, 1 lib file | ✅ COMPLETE |
 | **5** | Supabase Migration | Vercel-compatible vector DB | 1 lib file, 1 replaced | ✅ COMPLETE |
+| **6** | Tab 1 Simplification | Remove data cleaning | 2 deleted, 10 modified | ✅ COMPLETE |
+| **7** | Tab 2 RAG Update | Align RAG types with Tab 1 | 6 modified | ✅ COMPLETE |
 
 ---
 
@@ -308,6 +310,106 @@ create index on rag_chunks (type);
 
 ---
 
+## Phase 6: Tab 1 Simplification ✅ COMPLETE
+
+**Goal:** Remove the Opus data cleaning step from Tab 1. Users upload pre-cleaned .md files directly.
+
+**Rationale:** Data cleaning happens outside the app. Users prepare clean files externally.
+
+### Files Deleted
+
+| # | File | Reason |
+|---|------|--------|
+| 6.1 | `app/api/clean/route.ts` | Cleaning API no longer needed |
+| 6.2 | `lib/prompts/cleaning-prompts.ts` | Cleaning prompts no longer needed |
+
+### Files Modified
+
+| # | File | Change |
+|---|------|--------|
+| 6.3 | `store/buildStore.ts` | Removed rawData, cleaningInProgress; 4 types |
+| 6.4 | `lib/storage.ts` | Removed rawData from SavedState |
+| 6.5 | `app/api/generate-prompt/route.ts` | Updated CleanedData to 4 types |
+| 6.6 | `components/state/SaveStateButton.tsx` | Removed rawData |
+| 6.7 | `components/state/LoadStateModal.tsx` | Backward compatibility |
+| 6.8 | `components/upload/DataUploadZone.tsx` | Simplified to direct upload |
+| 6.9 | `components/upload/CleanedFileDisplay.tsx` | 4 types, .md download |
+| 6.10 | `components/upload/FileViewModal.tsx` | Updated labels |
+| 6.11 | `components/tabs/Tab1BuildPhase.tsx` | 4 upload zones |
+| 6.12 | `components/prompt/SystemPromptGenerator.tsx` | Updated help text |
+
+### Data Type Changes
+```typescript
+// BEFORE (6 types)
+type DataType = 'transcripts' | 'tickets' | 'website' | 'docs' | 'research' | 'email-guide';
+
+// AFTER (4 types)
+type DataType = 'transcripts' | 'tickets' | 'website' | 'research';
+```
+
+### Validation Checklist
+- [x] Upload .md files to 4 upload zones
+- [x] Files appear in "Uploaded Files" section
+- [x] "Generate System Prompt" works
+- [x] Save/Load state works
+- [x] Old saved states load without errors (backward compatible)
+
+---
+
+## Phase 7: Tab 2 RAG Update ✅ COMPLETE
+
+**Goal:** Align Tab 2 RAG types with Tab 1 data types for consistency. Fix API rate limits.
+
+**Rationale:** Users re-upload same cleaned files from Tab 1 to Tab 2 for vectorization.
+
+### Files Modified
+
+| # | File | Change |
+|---|------|--------|
+| 7.1 | `lib/vectorstore/chunk.ts` | 4 RAG types, simplified markdown chunking |
+| 7.2 | `lib/vectorstore/index.ts` | Updated getCountByType for 4 types |
+| 7.3 | `store/ragStore.ts` | Updated state, config, labels |
+| 7.4 | `app/api/analyze/route.ts` | Updated Haiku prompt content_types |
+| 7.5 | `components/chat/ChatContainer.tsx` | Search all types (no filtering) |
+| 7.6 | `components/state/LoadStateModal.tsx` | Backward compatibility for 6-type saves |
+
+### Rate Limit Fix
+
+| # | File | Change |
+|---|------|--------|
+| 7.7 | `app/api/generate-prompt/route.ts` | Sequential API calls with 1s delay |
+
+**Problem:** 6 parallel Opus calls exceeded 30,000 tokens/minute limit
+**Solution:** Process sections sequentially with delays
+
+### RAG Type Changes
+```typescript
+// BEFORE (6 types)
+type RagType = 'docs' | 'case_study' | 'pricing' | 'faq' | 'competitive' | 'website';
+
+// AFTER (4 types - matches Tab 1)
+type RagType = 'transcripts' | 'tickets' | 'website' | 'research';
+```
+
+### Chunking Strategy
+- Simplified from 6 type-specific chunkers to single markdown-based strategy
+- All content split by `##` headers with paragraph fallback
+
+### Search Behavior
+- Now searches ALL 4 types for every query
+- No content type filtering
+- Increased limit from 5 to 8 results
+
+### Validation Checklist
+- [x] Tab 2 shows 4 upload zones
+- [x] Upload .md files to all 4 types
+- [x] "Vectorize All" creates chunks
+- [x] Chat searches all types
+- [x] RAG results show correct type labels
+- [x] Old saves with 6 types load gracefully
+
+---
+
 ## Post-MVP Enhancements (Future)
 
 These are NOT in current scope but documented for future:
@@ -357,6 +459,12 @@ Phase 2 (Vector DB) ✅ COMPLETE       Phase 3 (Chat) ✅ COMPLETE
                   Phase 5 (Supabase) ✅ COMPLETE
                         │
                         ▼
+                  Phase 6 (Tab 1 Simplification) ✅ COMPLETE
+                        │
+                        ▼
+                  Phase 7 (Tab 2 RAG Update) ✅ COMPLETE
+                        │
+                        ▼
                   Vercel Deployment ⏳ READY
 ```
 
@@ -365,8 +473,10 @@ Phase 2 ✅ Complete
 Phase 3 ✅ Complete
 Phase 4 ✅ Complete
 Phase 5 ✅ Complete
+Phase 6 ✅ Complete
+Phase 7 ✅ Complete
 
-**ALL PHASES COMPLETE - READY FOR VERCEL DEPLOYMENT**
+**ALL 7 PHASES COMPLETE - READY FOR VERCEL DEPLOYMENT**
 
 ---
 
@@ -379,5 +489,7 @@ Phase 5 ✅ Complete
 | 3 | 5 + 1 store | 2 | High (orchestration) | ✅ Done |
 | 4 | 2 + 1 lib | 0 | Low | ✅ Done |
 | 5 | 1 lib + 1 replace | 0 | Medium (migration) | ✅ Done |
+| 6 | 2 deleted, 10 modified | 0 | Medium (simplification) | ✅ Done |
+| 7 | 6 modified | 1 modified | Low-Medium | ✅ Done |
 
-**Current Position:** All phases complete. App is ready for Vercel deployment.
+**Current Position:** All 7 phases complete. App is ready for Vercel deployment.

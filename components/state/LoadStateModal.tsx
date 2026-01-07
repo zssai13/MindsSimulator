@@ -210,17 +210,21 @@ function restoreRagState(
 ) {
   const { rag } = state;
 
-  const ragTypes: RagType[] = ['docs', 'case_study', 'pricing', 'faq', 'competitive', 'website'];
+  // Current 4 RAG types (old saves may have 6 types - backward compatible)
+  const ragTypes: RagType[] = ['transcripts', 'tickets', 'website', 'research'];
 
   ragTypes.forEach((type) => {
+    // Use optional chaining for backward compatibility with old saves
     // Set file content - this will also update status to 'uploaded' if content exists
-    store.setFile(type, rag.files[type]);
+    store.setFile(type, rag.files?.[type] ?? null);
 
-    // Override with saved status
-    store.setStatus(type, rag.status[type]);
+    // Override with saved status if it exists
+    if (rag.status?.[type]) {
+      store.setStatus(type, rag.status[type]);
+    }
 
-    // Set chunk counts
-    store.setChunkCount(type, rag.chunkCounts[type]);
+    // Set chunk counts if they exist
+    store.setChunkCount(type, rag.chunkCounts?.[type] ?? 0);
   });
 }
 
