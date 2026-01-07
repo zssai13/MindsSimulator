@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { getSavesList, loadState, deleteState, formatSaveDate, SaveMetadata, SavedState } from '@/lib/storage';
-import { useBuildStore, DataType } from '@/store/buildStore';
-import { useRagStore } from '@/store/ragStore';
-import { useChatStore } from '@/store/chatStore';
+import { useBuildStore, DataType, BuildState } from '@/store/buildStore';
+import { useRagStore, RagState } from '@/store/ragStore';
+import { useChatStore, ChatState } from '@/store/chatStore';
 import { RagType } from '@/lib/vectorstore/chunk';
 
 interface LoadStateModalProps {
@@ -177,7 +177,7 @@ export function LoadStateModal({ isOpen, onClose }: LoadStateModalProps) {
 // Helper function to restore build store state
 function restoreBuildState(
   state: SavedState,
-  store: ReturnType<typeof useBuildStore>
+  store: BuildState
 ) {
   const { build } = state;
 
@@ -204,7 +204,7 @@ function restoreBuildState(
 // Helper function to restore RAG store state
 function restoreRagState(
   state: SavedState,
-  store: ReturnType<typeof useRagStore>
+  store: RagState
 ) {
   const { rag } = state;
 
@@ -225,7 +225,7 @@ function restoreRagState(
 // Helper function to restore chat store state
 function restoreChatState(
   state: SavedState,
-  store: ReturnType<typeof useChatStore>
+  store: ChatState
 ) {
   const { chat } = state;
 

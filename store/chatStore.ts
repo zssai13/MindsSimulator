@@ -50,7 +50,7 @@ export interface RagChunk {
 // Processing state
 export type ProcessingStep = 'idle' | 'analyzing' | 'retrieving' | 'generating';
 
-interface ChatState {
+export interface ChatState {
   // Context inputs
   systemPrompt: string;
   setSystemPrompt: (prompt: string) => void;

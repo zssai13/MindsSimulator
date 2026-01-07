@@ -11,7 +11,7 @@ interface CleanedData {
   'email-guide': string | null;
 }
 
-interface BuildState {
+export interface BuildState {
   // Raw uploads
   rawData: Record<DataType, string | null>;
   setRawData: (type: DataType, content: string | null) => void;

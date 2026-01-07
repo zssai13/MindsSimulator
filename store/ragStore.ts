@@ -3,7 +3,7 @@ import { RagType } from '@/lib/vectorstore/chunk';
 
 export type RagStatus = 'empty' | 'uploaded' | 'vectorizing' | 'ready';
 
-interface RagState {
+export interface RagState {
   // RAG file contents (raw text before vectorization)
   files: Record<RagType, string | null>;
   setFile: (type: RagType, content: string | null) => void;
