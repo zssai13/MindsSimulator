@@ -14,12 +14,6 @@ export interface BuildState {
   cleanedData: CleanedData;
   setCleanedData: (type: DataType, content: string | null) => void;
 
-  // Static rules
-  templateRules: string;
-  setTemplateRules: (rules: string) => void;
-  userRules: string;
-  setUserRules: (rules: string) => void;
-
   // Extracted sections
   extractedSections: Record<string, string>;
   setExtractedSection: (section: string, content: string) => void;
@@ -48,11 +42,6 @@ export const useBuildStore = create<BuildState>((set) => ({
   setCleanedData: (type, content) =>
     set((state) => ({ cleanedData: { ...state.cleanedData, [type]: content } })),
 
-  templateRules: '',
-  setTemplateRules: (rules) => set({ templateRules: rules }),
-  userRules: '',
-  setUserRules: (rules) => set({ userRules: rules }),
-
   extractedSections: {},
   setExtractedSection: (section, content) =>
     set((state) => ({ extractedSections: { ...state.extractedSections, [section]: content } })),
@@ -65,8 +54,6 @@ export const useBuildStore = create<BuildState>((set) => ({
 
   reset: () => set({
     cleanedData: { ...initialCleanedData },
-    templateRules: '',
-    userRules: '',
     extractedSections: {},
     systemPrompt: '',
     generatingPrompt: false,

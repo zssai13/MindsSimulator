@@ -1,12 +1,19 @@
 'use client';
 
-import { useChatStore } from '@/store/chatStore';
+import { useState } from 'react';
+import { useChatStore, DEFAULT_TEMPLATE_RULES } from '@/store/chatStore';
 import { useBuildStore } from '@/store/buildStore';
 import { useEffect } from 'react';
 
 export function ContextInputs() {
+  const [rulesExpanded, setRulesExpanded] = useState(false);
+
   const systemPrompt = useChatStore((s) => s.systemPrompt);
   const setSystemPrompt = useChatStore((s) => s.setSystemPrompt);
+  const templateRules = useChatStore((s) => s.templateRules);
+  const setTemplateRules = useChatStore((s) => s.setTemplateRules);
+  const userRules = useChatStore((s) => s.userRules);
+  const setUserRules = useChatStore((s) => s.setUserRules);
   const pageUrl = useChatStore((s) => s.pageUrl);
   const setPageUrl = useChatStore((s) => s.setPageUrl);
   const additionalContext = useChatStore((s) => s.additionalContext);
@@ -60,6 +67,67 @@ export function ContextInputs() {
             {systemPrompt.length.toLocaleString()} characters
           </p>
         )}
+      </div>
+
+      {/* Static Rules (Collapsible) */}
+      <div className="space-y-2 border rounded-lg p-3 bg-gray-50">
+        <button
+          onClick={() => setRulesExpanded(!rulesExpanded)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <div className="flex items-center gap-2">
+            <span className={`transform transition-transform ${rulesExpanded ? 'rotate-90' : ''}`}>
+              ▶
+            </span>
+            <label className="text-sm font-medium text-gray-700">
+              Static Rules
+            </label>
+            {templateRules !== DEFAULT_TEMPLATE_RULES && (
+              <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                Modified
+              </span>
+            )}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setTemplateRules(DEFAULT_TEMPLATE_RULES);
+            }}
+            className="text-xs text-blue-600 hover:text-blue-700"
+          >
+            Reset to Default
+          </button>
+        </button>
+
+        {rulesExpanded && (
+          <div className="pt-2">
+            <p className="text-xs text-gray-500 mb-2">
+              Operating instructions for the AI (knowledge handling, response format, boundaries).
+            </p>
+            <textarea
+              value={templateRules}
+              onChange={(e) => setTemplateRules(e.target.value)}
+              className="w-full h-48 px-3 py-2 text-sm font-mono border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y bg-white"
+              placeholder="Enter template rules..."
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Never Do Rules */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Never Do Rules
+        </label>
+        <p className="text-xs text-gray-500">
+          Specific behaviors the AI should never exhibit. One rule per line.
+        </p>
+        <textarea
+          value={userRules}
+          onChange={(e) => setUserRules(e.target.value)}
+          className="w-full h-20 px-3 py-2 text-sm font-mono border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          placeholder="- Never mention competitor X by name&#10;- Never offer discounts without approval&#10;- Never discuss feature Y until released"
+        />
       </div>
 
       {/* Two column layout for URL and Additional Context */}
@@ -118,6 +186,8 @@ export function ContextInputs() {
       {/* Status indicators */}
       <div className="flex flex-wrap gap-2 pt-2">
         <StatusBadge label="System Prompt" active={!!systemPrompt} />
+        <StatusBadge label="Static Rules" active={!!templateRules} />
+        <StatusBadge label="Never Do Rules" active={!!userRules} />
         <StatusBadge label="Page URL" active={!!pageUrl} />
         <StatusBadge label="Additional Context" active={!!additionalContext} />
         <StatusBadge label="Initial Email" active={!!initialEmail} />

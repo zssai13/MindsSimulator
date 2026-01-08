@@ -28,27 +28,33 @@ export async function getEmbedding(text: string): Promise<number[]> {
 }
 
 /**
- * Generate embeddings for multiple texts in a single API call
- * More efficient for batch processing
+ * Generate embeddings for multiple texts
+ * Processes sequentially to avoid token limit errors (8192 tokens per request)
  */
 export async function getEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  // OpenAI has a limit of ~8191 tokens per text input
-  // Split into batches of 100 texts max to avoid rate limits
-  const BATCH_SIZE = 100;
   const allEmbeddings: number[][] = [];
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
+  // Process texts one at a time to avoid token limit errors
+  // OpenAI's limit is 8192 tokens per request - batching can exceed this
+  for (let i = 0; i < texts.length; i++) {
+    const text = texts[i];
+
+    // Truncate very long texts to ~6000 chars (~1500 tokens) to stay under limit
+    const truncatedText = text.length > 6000 ? text.substring(0, 6000) : text;
+
     const response = await getOpenAI().embeddings.create({
       model: EMBEDDING_MODEL,
-      input: batch,
+      input: truncatedText,
     });
 
-    // Embeddings are returned in the same order as input
-    const batchEmbeddings = response.data.map(d => d.embedding);
-    allEmbeddings.push(...batchEmbeddings);
+    allEmbeddings.push(response.data[0].embedding);
+
+    // Small delay every 10 texts to avoid rate limits
+    if ((i + 1) % 10 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
   }
 
   return allEmbeddings;

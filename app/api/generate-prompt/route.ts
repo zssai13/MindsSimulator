@@ -11,14 +11,12 @@ interface CleanedData {
 
 interface GeneratePromptRequest {
   cleanedData: CleanedData;
-  staticRules: string;
-  userRules: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as GeneratePromptRequest;
-    const { cleanedData, staticRules, userRules } = body;
+    const { cleanedData } = body;
 
     if (!cleanedData) {
       return NextResponse.json(
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
       sections[section] = content;
     });
 
-    const systemPrompt = assembleSystemPrompt(sections, staticRules, userRules);
+    const systemPrompt = assembleSystemPrompt(sections);
 
     return NextResponse.json({
       systemPrompt,
@@ -97,11 +95,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function assembleSystemPrompt(
-  sections: Record<string, string>,
-  staticRules: string,
-  userRules: string
-): string {
+function assembleSystemPrompt(sections: Record<string, string>): string {
   const parts: string[] = [];
 
   parts.push('# AI SALES REPRESENTATIVE SYSTEM PROMPT\n');
@@ -139,19 +133,6 @@ function assembleSystemPrompt(
   if (sections.competitive) {
     parts.push('## COMPETITIVE POSITIONING\n');
     parts.push(sections.competitive);
-    parts.push('\n');
-  }
-
-  if (staticRules) {
-    parts.push('## OPERATING RULES\n');
-    parts.push(staticRules);
-    parts.push('\n');
-  }
-
-  if (userRules) {
-    parts.push('## CUSTOM CONSTRAINTS\n');
-    parts.push('The following are absolute rules that must never be violated:\n');
-    parts.push(userRules);
     parts.push('\n');
   }
 

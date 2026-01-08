@@ -21,8 +21,6 @@ export function SystemPromptGenerator() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const cleanedData = useBuildStore((s) => s.cleanedData);
-  const templateRules = useBuildStore((s) => s.templateRules);
-  const userRules = useBuildStore((s) => s.userRules);
   const extractedSections = useBuildStore((s) => s.extractedSections);
   const generatingPrompt = useBuildStore((s) => s.generatingPrompt);
   const setExtractedSection = useBuildStore((s) => s.setExtractedSection);
@@ -44,8 +42,6 @@ export function SystemPromptGenerator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cleanedData,
-          staticRules: templateRules,
-          userRules,
         }),
       });
 

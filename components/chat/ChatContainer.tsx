@@ -11,6 +11,8 @@ export function ChatContainer() {
   const addMessage = useChatStore((s) => s.addMessage);
   const setProcessingStep = useChatStore((s) => s.setProcessingStep);
   const systemPrompt = useChatStore((s) => s.systemPrompt);
+  const templateRules = useChatStore((s) => s.templateRules);
+  const userRules = useChatStore((s) => s.userRules);
   const pageUrl = useChatStore((s) => s.pageUrl);
   const additionalContext = useChatStore((s) => s.additionalContext);
   const initialEmail = useChatStore((s) => s.initialEmail);
@@ -102,6 +104,8 @@ export function ChatContainer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemPrompt,
+          templateRules,
+          userRules,
           analysis,
           knowledge: ragResults,
           history,
@@ -135,7 +139,7 @@ export function ChatContainer() {
     } finally {
       setProcessingStep('idle');
     }
-  }, [messages, systemPrompt, pageUrl, additionalContext, addMessage, setProcessingStep, setError]);
+  }, [messages, systemPrompt, templateRules, userRules, pageUrl, additionalContext, addMessage, setProcessingStep, setError]);
 
   const hasMessages = messages.length > 0;
   const hasVectorizedData = isFullyVectorized();

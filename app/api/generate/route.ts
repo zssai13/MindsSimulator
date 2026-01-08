@@ -4,6 +4,8 @@ import { HaikuAnalysis, RagChunk } from '@/store/chatStore';
 
 interface GenerateRequest {
   systemPrompt: string;
+  templateRules: string;
+  userRules: string;
   analysis: HaikuAnalysis;
   knowledge: RagChunk[];
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
@@ -14,7 +16,7 @@ interface GenerateRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { systemPrompt, analysis, knowledge, history, message, additionalContext } = body;
+    const { systemPrompt, templateRules, userRules, analysis, knowledge, history, message, additionalContext } = body;
 
     if (!message) {
       return NextResponse.json(
@@ -33,6 +35,8 @@ export async function POST(request: NextRequest) {
     // Assemble the final prompt
     const finalPrompt = assemblePrompt({
       systemPrompt,
+      templateRules,
+      userRules,
       analysis,
       knowledge,
       additionalContext,
@@ -86,27 +90,54 @@ export async function POST(request: NextRequest) {
 /**
  * Assemble the complete system prompt with analysis and knowledge
  */
+// Fixed role preamble - always present, not editable
+const ROLE_PREAMBLE = `You are a sales representative responding to a prospect who has replied to a cold outreach email you previously sent. Your goal is to continue this conversation naturally and move them toward a sale while being genuinely helpful - not pushy.
+
+The prospect received an initial email from you and has now replied. You are continuing that conversation. Use the context below to understand who you represent, how to communicate, and what knowledge you have access to.`;
+
 function assemblePrompt({
   systemPrompt,
+  templateRules,
+  userRules,
   analysis,
   knowledge,
   additionalContext,
 }: {
   systemPrompt: string;
+  templateRules: string;
+  userRules: string;
   analysis: HaikuAnalysis;
   knowledge: RagChunk[];
   additionalContext?: string;
 }): string {
   const parts: string[] = [];
 
-  // 1. Base system prompt
+  // 0. Fixed role preamble (always present)
+  parts.push(ROLE_PREAMBLE);
+
+  // 1. Base system prompt (extracted from data in Tab 1)
   if (systemPrompt) {
     parts.push(systemPrompt);
-  } else {
-    parts.push(`You are a helpful sales representative. Be professional, knowledgeable, and focused on understanding and addressing the prospect's needs.`);
   }
 
-  // 2. Additional context from user
+  // 2. Static rules (template rules)
+  if (templateRules) {
+    parts.push(`
+<operating_rules>
+${templateRules}
+</operating_rules>`);
+  }
+
+  // 3. User-defined "Never Do" rules
+  if (userRules && userRules.trim()) {
+    parts.push(`
+<never_do>
+CRITICAL: You must NEVER do any of the following:
+${userRules}
+</never_do>`);
+  }
+
+  // 4. Additional context from user
   if (additionalContext) {
     parts.push(`
 <additional_context>
@@ -114,7 +145,7 @@ ${additionalContext}
 </additional_context>`);
   }
 
-  // 3. Analysis from Haiku
+  // 5. Analysis from Haiku
   parts.push(`
 <prospect_analysis>
 Current Buying Stage: ${analysis.buying_stage}
@@ -134,7 +165,7 @@ Recommended Response Strategy:
 - Key Focus: ${analysis.response_strategy.key_focus}
 </prospect_analysis>`);
 
-  // 4. Retrieved knowledge (if any)
+  // 6. Retrieved knowledge (if any)
   if (knowledge.length > 0) {
     const knowledgeText = knowledge
       .map((chunk) => {
@@ -151,7 +182,7 @@ ${knowledgeText}
 </knowledge>`);
   }
 
-  // 5. Response instructions
+  // 7. Response instructions
   parts.push(`
 <response_instructions>
 Based on the prospect analysis above, craft your response following the recommended strategy. Key reminders:

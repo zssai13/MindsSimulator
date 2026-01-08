@@ -18,8 +18,6 @@ export interface SavedState {
   // Build store state (Tab 1)
   build: {
     cleanedData: Record<DataType, string | null>;
-    templateRules: string;
-    userRules: string;
     extractedSections: Record<string, string>;
     systemPrompt: string;
   };
@@ -34,6 +32,8 @@ export interface SavedState {
   // Chat store state (Tab 2 - chat)
   chat: {
     systemPrompt: string;
+    templateRules: string;
+    userRules: string;
     pageUrl: string;
     additionalContext: string;
     initialEmail: string;

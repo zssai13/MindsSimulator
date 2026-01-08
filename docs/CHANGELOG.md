@@ -13,6 +13,106 @@ All notable changes to RepSimulator are documented here.
 
 ---
 
+## [0.8.1] - 2026-01-08
+
+### Role Preamble Addition
+
+**Goal:** Ensure the AI always knows its fundamental role as a sales rep responding to cold email replies.
+
+**Problem:** The system prompt extraction and rules provided context about WHO the AI represents and HOW to behave, but never explicitly stated WHAT the AI is (a sales rep responding to cold email replies).
+
+**Solution:** Added a fixed, hardcoded role preamble that appears first in every prompt assembly.
+
+### Added
+- `app/api/generate/route.ts` - Added `ROLE_PREAMBLE` constant
+  ```
+  You are a sales representative responding to a prospect who has replied
+  to a cold outreach email you previously sent. Your goal is to continue
+  this conversation naturally and move them toward a sale while being
+  genuinely helpful - not pushy.
+  ```
+
+### Added - Documentation
+- `docs/MIND-MODE-VISUAL-GUIDE.md` - Visual ASCII diagrams showing the complete Mind Mode process with all prompts
+- `docs/MIND-MODE-IMPLEMENTATION-GUIDE.md` - Comprehensive technical reference with:
+  - All prompts (verbatim)
+  - All data structures (TypeScript interfaces)
+  - Model selection rationale
+  - Error handling details
+  - Configuration options
+  - Quick reference card
+
+### Updated
+- `docs/MIND-MODE-VISUAL-GUIDE.md` - Added role preamble to prompt assembly diagram and exact structure
+- `docs/ARCHITECTURE.md` - Added role preamble section and documentation reference
+
+### Prompt Assembly Order (Updated)
+```
+0. Role Preamble (fixed, hardcoded) ← NEW
+1. System Prompt (extracted sections from Tab 1)
+2. Static Rules (template from Tab 2)
+3. Never Do Rules (user rules from Tab 2)
+4. Additional Context
+5. Haiku Analysis
+6. Knowledge Chunks
+7. Response Instructions
+```
+
+---
+
+## [0.8.0] - 2026-01-08
+
+### Phase 8: Move Static Rules to Tab 2
+
+**Goal:** Move the static rules editor (template rules + "Never Do" rules) from Tab 1 to Tab 2, so they're applied at chat time rather than during system prompt generation.
+
+**Rationale:** Separates "what AI knows" (Tab 1) from "how AI behaves" (Tab 2). Enables faster iteration during testing without regenerating the entire system prompt.
+
+### Changed - Tab 1 (Build Phase)
+- `components/prompt/SystemPromptGenerator.tsx` - Removed rules from API call
+- `app/api/generate-prompt/route.ts` - Removed rules from prompt assembly
+- System prompt now contains extracted sections only (no rules)
+
+### Changed - Tab 2 (Runtime Phase)
+- `components/chat/ContextInputs.tsx` - Added collapsible Static Rules section and Never Do textarea
+- `app/api/generate/route.ts` - Now combines rules with system prompt at chat time
+- `components/chat/ChatContainer.tsx` - Pass templateRules and userRules to generate API
+
+### Changed - State Management
+- `store/chatStore.ts` - Added templateRules, userRules state with DEFAULT_TEMPLATE_RULES constant
+- `store/buildStore.ts` - Removed templateRules, userRules (moved to chatStore)
+
+### Changed - Save/Load
+- `lib/storage.ts` - Moved rules from build to chat in SavedState schema
+- `components/state/SaveStateButton.tsx` - Save rules in chat section
+- `components/state/LoadStateModal.tsx` - Backward compatibility: loads rules from chat (new) or build (old saves)
+
+### Deleted
+- `components/prompt/StaticRulesEditor.tsx` - No longer needed in Tab 1
+
+### Architecture Change
+```
+BEFORE:
+Tab 1: Upload → Generate Prompt → Add Rules → Final Combined Prompt
+Tab 2: Receive combined prompt → Chat
+
+AFTER:
+Tab 1: Upload → Generate Prompt (extracted sections only)
+Tab 2: Receive prompt + Edit Rules here → Combined at chat time
+```
+
+### Benefits
+- Rules are editable during testing without going back to Tab 1
+- Separates "what AI knows" (Tab 1) from "how AI behaves" (Tab 2)
+- Faster iteration during testing
+- Cleaner separation of build-time vs runtime concerns
+
+### Backward Compatibility
+- Old saves with rules in `build` section load correctly
+- Rules migrated to `chat` section on load
+
+---
+
 ## [0.7.0] - 2026-01-07
 
 ### Phase 7: Tab 2 RAG Update + Rate Limit Fix

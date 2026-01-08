@@ -49,8 +49,6 @@ export function SaveStateButton({ onSaved }: SaveStateButtonProps) {
       saveState(saveName.trim(), {
         build: {
           cleanedData: buildState.cleanedData,
-          templateRules: buildState.templateRules,
-          userRules: buildState.userRules,
           extractedSections: buildState.extractedSections,
           systemPrompt: buildState.systemPrompt,
         },
@@ -61,6 +59,8 @@ export function SaveStateButton({ onSaved }: SaveStateButtonProps) {
         },
         chat: {
           systemPrompt: chatState.systemPrompt,
+          templateRules: chatState.templateRules,
+          userRules: chatState.userRules,
           pageUrl: chatState.pageUrl,
           additionalContext: chatState.additionalContext,
           initialEmail: chatState.initialEmail,

@@ -188,9 +188,7 @@ function restoreBuildState(
     store.setCleanedData(type, build.cleanedData?.[type] ?? null);
   });
 
-  // Restore rules
-  store.setTemplateRules(build.templateRules || '');
-  store.setUserRules(build.userRules || '');
+  // Note: templateRules and userRules are now in chatStore (Phase 8)
 
   // Restore extracted sections
   if (build.extractedSections) {
@@ -233,7 +231,7 @@ function restoreChatState(
   state: SavedState,
   store: ChatState
 ) {
-  const { chat } = state;
+  const { chat, build } = state;
 
   // Reset first to clear any existing messages
   store.resetAll();
@@ -243,6 +241,23 @@ function restoreChatState(
   store.setPageUrl(chat.pageUrl);
   store.setAdditionalContext(chat.additionalContext);
   store.setInitialEmail(chat.initialEmail);
+
+  // Restore rules (new in Phase 8)
+  // For backward compatibility: if rules are in chat, use those; otherwise check build (old saves)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyChat = chat as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyBuild = build as any;
+
+  const templateRules = anyChat.templateRules ?? anyBuild.templateRules ?? '';
+  const userRules = anyChat.userRules ?? anyBuild.userRules ?? '';
+
+  if (templateRules) {
+    store.setTemplateRules(templateRules);
+  }
+  if (userRules) {
+    store.setUserRules(userRules);
+  }
 
   // Restore messages
   chat.messages.forEach((msg) => {

@@ -1,7 +1,7 @@
 # RepSimulator Technical Architecture
 
-**Last Updated:** January 7, 2026
-**Status:** Phase 1-7 Complete | Ready for Vercel Deployment
+**Last Updated:** January 8, 2026
+**Status:** Phase 1-8 Complete + Role Preamble | Ready for Vercel Deployment
 
 ---
 
@@ -16,10 +16,11 @@
 │  │      TAB 1: BUILD PHASE     │    │    TAB 2: RUNTIME PHASE     │    │
 │  │         ✅ COMPLETE          │    │         ✅ COMPLETE          │    │
 │  │                             │    │                             │    │
-│  │  • Data Upload & Cleaning   │    │  • RAG Data Vectorization   │    │
-│  │  • System Prompt Generation │───▶│  • Context Inputs           │    │
-│  │  • Static Rules Editor      │    │  • Chat Simulation          │    │
-│  │  • Final Prompt Assembly    │    │  • Debug Panels             │    │
+│  │  • Data Upload (4 types)    │    │  • RAG Data Vectorization   │    │
+│  │  • System Prompt Generation │───▶│  • Static Rules Editor      │    │
+│  │  • Extracted Sections View  │    │  • Context Inputs           │    │
+│  │                             │    │  • Chat Simulation          │    │
+│  │                             │    │  • Debug Panels             │    │
 │  └─────────────────────────────┘    └─────────────────────────────┘    │
 │                                                                          │
 │  ✅ Supabase pgvector migration complete - Ready for Vercel deployment  │
@@ -119,7 +120,6 @@ MindsSimulator/
 │   │   └── FileViewModal.tsx
 │   ├── prompt/
 │   │   ├── SystemPromptGenerator.tsx
-│   │   ├── StaticRulesEditor.tsx
 │   │   └── FinalPromptDisplay.tsx
 │   ├── rag/
 │   │   ├── RagUploadZone.tsx
@@ -159,7 +159,9 @@ MindsSimulator/
 │   ├── BUILDINGPLAN.md               # Development phases and progress
 │   ├── HANDOFF.md                    # Session handoff notes
 │   ├── CHANGELOG.md                  # Version history
-│   └── VECTOR-MIGRATION.md           # LanceDB → Supabase migration plan
+│   ├── VECTOR-MIGRATION.md           # LanceDB → Supabase migration plan
+│   ├── MIND-MODE-VISUAL-GUIDE.md     # Visual diagrams of Mind Mode process
+│   └── MIND-MODE-IMPLEMENTATION-GUIDE.md  # Deep technical reference
 │
 ├── .env.local                        # API keys + Supabase credentials
 ├── .env.example
@@ -174,7 +176,7 @@ MindsSimulator/
 
 ## Data Flow
 
-### Build Phase Flow (✅ COMPLETE - Simplified in Phase 6)
+### Build Phase Flow (✅ COMPLETE - Simplified in Phase 6 & 8)
 
 ```
 ┌──────────────────┐     ┌──────────────────────────────────────┐
@@ -187,13 +189,16 @@ MindsSimulator/
 │  • website       │     └──────────────────────────────────────┘
 │  • research      │                       │
 └──────────────────┘                       ▼
-                         ┌──────────────┐     ┌──────────────┐
-                         │Static Rules  │────▶│   System     │
-                         │(Template +   │     │   Prompt     │
-                         │ User Rules)  │     └──────────────┘
-                         └──────────────┘
+                                   ┌──────────────┐
+                                   │   System     │
+                                   │   Prompt     │
+                                   │ (extracted   │
+                                   │  sections)   │
+                                   └──────────────┘
 
-Note: Data cleaning removed in Phase 6. Users upload pre-cleaned markdown files directly.
+Notes:
+- Data cleaning removed in Phase 6. Users upload pre-cleaned markdown files directly.
+- Static rules moved to Tab 2 in Phase 8. System prompt now contains extracted sections only.
 ```
 
 ### RAG Vectorization Flow (✅ COMPLETE - Updated in Phase 7)
@@ -215,7 +220,7 @@ Chunking Strategy (Unified):
 • Fallback to paragraph-based chunking if no headers found
 ```
 
-### Runtime Phase Flow (✅ COMPLETE)
+### Runtime Phase Flow (✅ COMPLETE - Updated in Phase 8)
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -244,10 +249,14 @@ Chunking Strategy (Unified):
 │              ▼                                            │
 │  ┌────────────────────────────────────────────┐          │
 │  │           PROMPT ASSEMBLY                   │          │
-│  │  System Prompt (from Tab 1)                 │          │
-│  │  + Additional Context                       │          │
-│  │  + Haiku Analysis                           │          │
-│  │  + Retrieved Knowledge (in <knowledge> tags)│          │
+│  │  0. Role Preamble (fixed, hardcoded)        │          │
+│  │  1. System Prompt (from Tab 1)              │          │
+│  │  2. Static Rules (template) ← Phase 8       │          │
+│  │  3. Never Do Rules ← Phase 8                │          │
+│  │  4. Additional Context                      │          │
+│  │  5. Haiku Analysis                          │          │
+│  │  6. Retrieved Knowledge (<knowledge> tags)  │          │
+│  │  7. Response Instructions                   │          │
 │  │  + Conversation History                     │          │
 │  │  + Current Message                          │          │
 │  └────────────────────────────────────────────┘          │
@@ -287,9 +296,9 @@ Generates response with Sonnet using assembled prompt.
 
 ### buildStore (Tab 1)
 - Uploaded data for 4 data types (transcripts, tickets, website, research)
-- Template and user rules
 - Extracted sections and final system prompt
 - Loading states
+- Note: Rules moved to chatStore in Phase 8
 
 ### ragStore (Tab 2 - RAG)
 - File contents for 4 RAG types (transcripts, tickets, website, research)
@@ -299,6 +308,7 @@ Generates response with Sonnet using assembled prompt.
 
 ### chatStore (Tab 2 - Chat)
 - Context inputs (system prompt, page URL, additional context)
+- Template rules and user "Never Do" rules (moved from buildStore in Phase 8)
 - Messages with debug info
 - Processing step tracking
 - Error handling
@@ -352,7 +362,8 @@ SUPABASE_SERVICE_KEY=eyJ...             # 🆕 Supabase service role key
 | **5** | Supabase Migration | ✅ COMPLETE |
 | **6** | Tab 1 Simplification (Remove Cleaning) | ✅ COMPLETE |
 | **7** | Tab 2 RAG Update + Rate Limit Fix | ✅ COMPLETE |
-| **8** | Vercel Deployment | ⏳ READY |
+| **8** | Move Static Rules to Tab 2 | ✅ COMPLETE |
+| **9** | Vercel Deployment | ⏳ READY |
 
 ---
 
@@ -422,3 +433,82 @@ See `docs/CLEANED.md` for complete implementation plan.
 | `components/state/LoadStateModal.tsx` | UPDATE - Backward compatibility for 6-type saves |
 
 See `docs/RAG-UPDATE.md` for complete implementation plan.
+
+---
+
+## Files Changed in Phase 8 (Move Static Rules to Tab 2)
+
+| File | Action |
+|------|--------|
+| `store/chatStore.ts` | UPDATE - Added templateRules, userRules, DEFAULT_TEMPLATE_RULES |
+| `store/buildStore.ts` | UPDATE - Removed templateRules, userRules |
+| `components/chat/ContextInputs.tsx` | UPDATE - Added collapsible rules editor UI |
+| `components/tabs/Tab1BuildPhase.tsx` | UPDATE - Removed StaticRulesEditor import |
+| `components/prompt/StaticRulesEditor.tsx` | DELETE - No longer needed in Tab 1 |
+| `components/prompt/FinalPromptDisplay.tsx` | UPDATE - Simplified titles |
+| `components/prompt/SystemPromptGenerator.tsx` | UPDATE - Removed rules from API call |
+| `app/api/generate-prompt/route.ts` | UPDATE - Removed rules from prompt assembly |
+| `app/api/generate/route.ts` | UPDATE - Combines rules with prompt at chat time |
+| `components/chat/ChatContainer.tsx` | UPDATE - Pass rules to generate API |
+| `lib/storage.ts` | UPDATE - Moved rules from build to chat in SavedState |
+| `components/state/SaveStateButton.tsx` | UPDATE - Save rules in chat section |
+| `components/state/LoadStateModal.tsx` | UPDATE - Backward compat for old saves |
+
+### Architecture Change
+```
+BEFORE:
+Tab 1: Upload → Generate Prompt → Add Rules → Final Combined Prompt
+Tab 2: Receive combined prompt → Chat
+
+AFTER:
+Tab 1: Upload → Generate Prompt (extracted sections only)
+Tab 2: Receive prompt + Edit Rules here → Combined at chat time
+```
+
+### Benefits
+- Rules are editable during testing without going back to Tab 1
+- Separates "what AI knows" (Tab 1) from "how AI behaves" (Tab 2)
+- Faster iteration during testing
+- Cleaner separation of build-time vs runtime concerns
+
+---
+
+## Role Preamble (Post-Phase 8 Enhancement)
+
+A fixed role preamble was added to ensure the AI always knows its fundamental role as a sales rep responding to cold email replies.
+
+### Location
+`app/api/generate/route.ts` - `ROLE_PREAMBLE` constant
+
+### Content
+```
+You are a sales representative responding to a prospect who has replied
+to a cold outreach email you previously sent. Your goal is to continue
+this conversation naturally and move them toward a sale while being
+genuinely helpful - not pushy.
+
+The prospect received an initial email from you and has now replied.
+You are continuing that conversation. Use the context below to understand
+who you represent, how to communicate, and what knowledge you have
+access to.
+```
+
+### Why Hardcoded?
+- Ensures Sonnet always knows its fundamental role
+- Can't be accidentally removed or modified
+- Sets the right frame before any other context
+- Appears first in every prompt assembly
+
+---
+
+## Documentation Reference
+
+| Document | Purpose |
+|----------|---------|
+| `MIND-MODE-VISUAL-GUIDE.md` | Visual ASCII diagrams of the entire Mind Mode process with all prompts |
+| `MIND-MODE-IMPLEMENTATION-GUIDE.md` | Deep technical reference for developers - all prompts, data structures, model rationale |
+| `PRODUCT-PRD.md` | Product requirements and user stories |
+| `ARCHITECTURE.md` | Technical architecture (this file) |
+| `BUILDINGPLAN.md` | Development phases and task breakdown |
+| `HANDOFF.md` | Session handoff notes and quick start |
+| `CHANGELOG.md` | Version history |

@@ -38,7 +38,7 @@ export function FinalPromptDisplay({ onSendToTab2 }: FinalPromptDisplayProps) {
     return (
       <div className="border rounded-lg p-6 bg-gray-50">
         <p className="text-sm text-gray-500 text-center">
-          Generate a system prompt above to see the combined output here.
+          Generate a system prompt above to see the extracted content here.
         </p>
       </div>
     );
@@ -51,7 +51,7 @@ export function FinalPromptDisplay({ onSendToTab2 }: FinalPromptDisplayProps) {
     <div className="border rounded-lg bg-white overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b bg-gray-50">
         <div className="flex items-center gap-4">
-          <h4 className="font-medium text-gray-900">Final System Prompt</h4>
+          <h4 className="font-medium text-gray-900">Generated System Prompt</h4>
           <span className="text-sm text-gray-500">
             {wordCount.toLocaleString()} words &bull; {charCount.toLocaleString()} chars
           </span>

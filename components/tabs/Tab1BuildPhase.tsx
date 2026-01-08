@@ -2,7 +2,6 @@
 
 import { DataUploadZone } from '@/components/upload/DataUploadZone';
 import { CleanedFileDisplay } from '@/components/upload/CleanedFileDisplay';
-import { StaticRulesEditor } from '@/components/prompt/StaticRulesEditor';
 import { SystemPromptGenerator } from '@/components/prompt/SystemPromptGenerator';
 import { FinalPromptDisplay } from '@/components/prompt/FinalPromptDisplay';
 import { DataType } from '@/store/buildStore';
@@ -77,23 +76,10 @@ export function Tab1BuildPhase() {
         <CleanedFileDisplay />
       </section>
 
-      {/* Section 3: Static Rules */}
+      {/* Section 3: System Prompt Generation */}
       <section className="space-y-4">
         <div className="border-b pb-2">
-          <h3 className="text-lg font-semibold text-gray-900">3. Static Rules</h3>
-          <p className="text-sm text-gray-500">
-            Configure operational rules and constraints for the AI.
-          </p>
-        </div>
-        <div className="border rounded-lg p-4 bg-white">
-          <StaticRulesEditor />
-        </div>
-      </section>
-
-      {/* Section 4: System Prompt Generation */}
-      <section className="space-y-4">
-        <div className="border-b pb-2">
-          <h3 className="text-lg font-semibold text-gray-900">4. System Prompt Generation</h3>
+          <h3 className="text-lg font-semibold text-gray-900">3. System Prompt Generation</h3>
           <p className="text-sm text-gray-500">
             Extract structured sections from your data using Opus.
           </p>
@@ -103,12 +89,12 @@ export function Tab1BuildPhase() {
         </div>
       </section>
 
-      {/* Section 5: Final System Prompt */}
+      {/* Section 4: Generated System Prompt */}
       <section className="space-y-4">
         <div className="border-b pb-2">
-          <h3 className="text-lg font-semibold text-gray-900">5. Final System Prompt</h3>
+          <h3 className="text-lg font-semibold text-gray-900">4. Generated System Prompt</h3>
           <p className="text-sm text-gray-500">
-            The combined system prompt ready for use. Copy, download, or send to Tab 2.
+            The extracted system prompt. Copy, download, or send to Tab 2. Static rules are added in Tab 2.
           </p>
         </div>
         <FinalPromptDisplay onSendToTab2={handleSendToTab2} />

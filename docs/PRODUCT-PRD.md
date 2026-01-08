@@ -143,9 +143,9 @@ We use retrieval-augmented generation instead of fine-tuning because:
 
 ### System Prompt Composition
 
-The system prompt has two sources:
+The system prompt has two sources, now applied at different stages:
 
-**Extracted from data (via Opus):**
+**Tab 1 - Extracted from data (via Opus):**
 - Identity and positioning
 - ICP definition
 - Email framework (distilled from guides)
@@ -153,13 +153,17 @@ The system prompt has two sources:
 - Objection playbook
 - Competitive positioning
 
-**Static templates (written by humans):**
+**Tab 2 - Static rules (applied at chat time):**
 - Knowledge handling instructions (how to use RAG results)
 - Buying stage response rules
 - Response format rules
 - Boundaries and handoffs
+- "Never Do" constraints
 
-Why both? The AI can extract WHAT to say from your data, but it can't infer HOW your system works (like how to interpret `<knowledge>` tags).
+Why separate? (Phase 8 change)
+- Tab 1 = "What AI knows" (extracted from data, rarely changes)
+- Tab 2 = "How AI behaves" (rules, can be tweaked during testing)
+- Faster iteration: edit rules without regenerating the entire prompt
 
 ---
 
@@ -216,18 +220,12 @@ Why both? The AI can extract WHAT to say from your data, but it can't infer HOW 
   - Competitive positioning
 - Model label "opus" visible
 
-#### Static Rules Editor
-- Pre-loaded template with editable rules:
-  - Knowledge handling instructions
-  - Buying stage response rules
-  - Response format rules
-- User "Never Do" textarea for custom boundaries
-
 #### Final System Prompt
-- Scrollable view of complete combined prompt
+- Scrollable view of extracted system prompt (without rules)
 - Copy to clipboard
 - Download as markdown
 - "Send to Tab 2" to pass to runtime testing
+- Note: Static rules moved to Tab 2 in Phase 8 for faster iteration
 
 ### Tab 2: Runtime Phase
 
@@ -242,11 +240,18 @@ Why both? The AI can extract WHAT to say from your data, but it can't infer HOW 
 - Model label "openai" (embeddings)
 - Note: Same files from Tab 1 can be re-uploaded here for vectorization
 
-#### Context Inputs
+#### Context Inputs (Updated in Phase 8)
 - System prompt (auto-loaded from Tab 1 or manual paste)
+- **Static Rules (collapsible)** - Template with editable rules:
+  - Knowledge handling instructions
+  - Buying stage response rules
+  - Response format rules
+- **Never Do Rules** - User-defined boundaries (what AI should never do)
 - Page URL (simulates what page prospect visited)
 - Additional goals/context (optional instructions)
 - Initial email (conversation starter)
+
+Note: Rules moved from Tab 1 to Tab 2 in Phase 8 for faster iteration during testing.
 
 #### Chat Simulation
 - Standard chat interface
@@ -339,17 +344,17 @@ Build-time Opus calls: ~$0.50 per file (one-time)
 ## Appendix: The Full Pipeline
 
 ```
-BUILD PHASE (one-time) - Simplified in Phase 6
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUILD PHASE (one-time) - Simplified in Phase 6 & 8
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Pre-cleaned .md Files (4 types)
               ↓
          [Opus] → Extracted Sections
               ↓
-              + Static Rules → System Prompt
+         System Prompt (extracted sections only)
 
 
-RUNTIME PHASE (per-message) - Updated in Phase 7
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RUNTIME PHASE (per-message) - Updated in Phase 7 & 8
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 RAG Data (4 types: transcripts, tickets, website, research)
               ↓
          [OpenAI] → Vectorize → Supabase pgvector
@@ -360,7 +365,7 @@ Message + Page Context + History
               ↓
          [OpenAI] → RAG Query → Search ALL types → Retrieved Chunks
               ↓
-System Prompt + Analysis + Chunks + History + Message
+System Prompt + Static Rules + Never Do Rules + Analysis + Chunks + History
               ↓
          [Sonnet] → Response
 ```
@@ -368,3 +373,4 @@ System Prompt + Analysis + Chunks + History + Message
 Notes:
 - Data cleaning removed from the app in Phase 6. Users prepare clean files externally.
 - RAG types updated in Phase 7 to match Tab 1 types. Search now queries all types for maximum coverage.
+- Static rules moved to Tab 2 in Phase 8. Rules are combined with system prompt at chat time.

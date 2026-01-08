@@ -1,7 +1,7 @@
 # RepSimulator Development Handoff
 
-**Last Updated:** January 7, 2026
-**Status:** All 7 Phases Complete | Ready for Vercel Deployment
+**Last Updated:** January 8, 2026
+**Status:** All 8 Phases Complete + Role Preamble + Documentation | Ready for Vercel Deployment
 **GitHub:** https://github.com/zssai13/MindsSimulator.git
 
 ---
@@ -13,7 +13,9 @@
 2. `docs/ARCHITECTURE.md` - Technical architecture
 3. `docs/BUILDINGPLAN.md` - Development phases (all complete)
 4. `docs/CHANGELOG.md` - Version history
-5. This file - Current status
+5. `docs/MIND-MODE-IMPLEMENTATION-GUIDE.md` - **Deep technical reference** (all prompts, data structures)
+6. `docs/MIND-MODE-VISUAL-GUIDE.md` - Visual diagrams of Mind Mode process
+7. This file - Current status
 
 ### 2. Key Commands
 ```bash
@@ -28,6 +30,9 @@ npm run lint     # Check for issues
 - Build passes with no errors
 - Phase 6 (Tab 1 Simplification) complete
 - Phase 7 (Tab 2 RAG Update + Rate Limit Fix) complete
+- Phase 8 (Move Static Rules to Tab 2) complete
+- Role Preamble added (ensures AI always knows it's a sales rep)
+- Comprehensive documentation created (visual guide + implementation guide)
 - Awaiting Vercel deployment
 
 ---
@@ -59,6 +64,9 @@ npm run lint     # Check for issues
 │                                                                      │
 │  PHASE 7        ████████████████████████████████████████  100%      │
 │  (Tab 2 RAG)    ✅ COMPLETE - RAG types aligned, rate limit fixed    │
+│                                                                      │
+│  PHASE 8        ████████████████████████████████████████  100%      │
+│  (Rules→Tab2)   ✅ COMPLETE - Static rules moved to Tab 2            │
 │                                                                      │
 │  DEPLOYMENT     ████████████████████████████████████████  READY     │
 │  (Vercel)       ⏳ SQL setup needed, then deploy                     │
@@ -178,18 +186,26 @@ npx vercel --prod
 ## Architecture Summary
 
 ```
-BUILD PHASE (Tab 1) - Simplified in Phase 6
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Pre-cleaned .md Files → [Opus] → System Prompt
+BUILD PHASE (Tab 1) - Simplified in Phase 6 & 8
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pre-cleaned .md Files → [Opus] → System Prompt (extracted sections only)
   (4 types)
 
-RUNTIME PHASE (Tab 2)
-━━━━━━━━━━━━━━━━━━━━━━━━━━
+RUNTIME PHASE (Tab 2) - Updated in Phase 8 + Role Preamble
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Message → [Haiku] → Analysis
                       ↓
               [OpenAI] → RAG Query (Supabase pgvector)
                       ↓
-System Prompt + Analysis + Chunks + History
+         PROMPT ASSEMBLY (in order):
+         0. Role Preamble (fixed) ← "You are a sales rep..."
+         1. System Prompt (from Tab 1)
+         2. Static Rules (template)
+         3. Never Do Rules
+         4. Additional Context
+         5. Haiku Analysis
+         6. Knowledge Chunks
+         7. Response Instructions
                       ↓
               [Sonnet] → Response
 ```
@@ -229,37 +245,110 @@ System Prompt + Analysis + Chunks + History
 
 ---
 
-## Session Summary - January 7, 2026
+## What Changed in Phase 8
 
-### Phase 6 Completed
+**Goal:** Move static rules from Tab 1 to Tab 2 for faster iteration during testing.
+
+### Summary
+- Static rules (template + "Never Do") now edited in Tab 2
+- Tab 1 system prompt contains only extracted sections
+- Rules combined with system prompt at chat time in `/api/generate`
+- Separates "what AI knows" (Tab 1) from "how AI behaves" (Tab 2)
+
+### Key Files Changed
+- `store/chatStore.ts` - Added templateRules, userRules, DEFAULT_TEMPLATE_RULES
+- `store/buildStore.ts` - Removed templateRules, userRules
+- `components/chat/ContextInputs.tsx` - Added rules editor UI
+- `components/prompt/StaticRulesEditor.tsx` - DELETED (no longer needed)
+- `app/api/generate-prompt/route.ts` - Removed rules from assembly
+- `app/api/generate/route.ts` - Now combines rules at chat time
+- `lib/storage.ts` - Rules now in chat section of SavedState
+
+See `docs/CHANGELOG.md` for complete implementation details.
+
+---
+
+## Session Summary - January 8, 2026
+
+### Phase 8 Completed
+1. ✅ Added templateRules and userRules to chatStore
+2. ✅ Removed rules from buildStore
+3. ✅ Added rules editor to ContextInputs.tsx
+4. ✅ Deleted StaticRulesEditor.tsx from Tab 1
+5. ✅ Updated generate-prompt API to not include rules
+6. ✅ Updated generate API to combine rules at chat time
+7. ✅ Updated storage schema and backward compatibility
+8. ✅ Build verified - passes with no errors
+9. ✅ Updated all documentation
+
+### Previous Sessions
+
+#### January 7, 2026 - Phase 6 & 7
+
+**Phase 6 Completed:**
 1. ✅ Removed `/api/clean` route and `cleaning-prompts.ts`
 2. ✅ Simplified `buildStore.ts` (4 types, no rawData/cleaningInProgress)
 3. ✅ Updated all components for direct upload flow
 4. ✅ Added backward compatibility for old saved states
-5. ✅ Build verified - passes with no errors
-6. ✅ Updated all documentation
 
-### Phase 7 Completed
-1. ✅ Updated RAG types from 6 to 4 (matches Tab 1: transcripts, tickets, website, research)
+**Phase 7 Completed:**
+1. ✅ Updated RAG types from 6 to 4 (matches Tab 1)
 2. ✅ Simplified chunking to single markdown-based strategy
-3. ✅ RAG search now queries ALL types (no content type filtering)
+3. ✅ RAG search now queries ALL types (no filtering)
 4. ✅ Fixed rate limit issue (sequential API calls with delays)
 5. ✅ Added backward compatibility for old 6-type saves
-6. ✅ Build verified - passes with no errors
-7. ✅ Updated all documentation
 
-### Key Files Changed in Phase 7
-- `lib/vectorstore/chunk.ts` - 4 RAG types, unified chunking
-- `lib/vectorstore/index.ts` - Updated getCountByType
-- `store/ragStore.ts` - State, config, labels
-- `app/api/analyze/route.ts` - Haiku prompt
-- `app/api/generate-prompt/route.ts` - Sequential processing (rate limit fix)
-- `components/chat/ChatContainer.tsx` - Search all types
-- `components/state/LoadStateModal.tsx` - Backward compatibility
+### Why Phase 8 Changes
+- Rules are editable during testing without going back to Tab 1
+- Separates "what AI knows" from "how AI behaves"
+- Faster iteration - don't need to regenerate system prompt to test different rules
+- Cleaner separation of build-time vs runtime concerns
 
-### Why These Changes
-- Tab 1 and Tab 2 now use same 4 data types for consistency
-- Users can re-upload same files from Tab 1 to Tab 2
-- Simplified chunking is more maintainable
-- Sequential API calls prevent rate limit errors
-- Search all types ensures maximum thoroughness
+---
+
+## Session Summary - January 8, 2026 (Continued)
+
+### Role Preamble Added
+**Problem:** The system prompt extraction and rules provided context about WHO the AI represents and HOW to behave, but never explicitly stated WHAT the AI is.
+
+**Solution:** Added a fixed, hardcoded role preamble in `app/api/generate/route.ts`:
+```
+You are a sales representative responding to a prospect who has replied
+to a cold outreach email you previously sent. Your goal is to continue
+this conversation naturally and move them toward a sale while being
+genuinely helpful - not pushy.
+```
+
+This preamble:
+- Appears first in every prompt (before system prompt)
+- Cannot be removed or modified
+- Sets the fundamental frame for all responses
+
+### Documentation Created
+1. **`docs/MIND-MODE-VISUAL-GUIDE.md`**
+   - ASCII diagrams of entire Mind Mode flow
+   - All 6 Opus extraction prompts (verbatim)
+   - Haiku analysis prompt
+   - Final prompt assembly structure
+   - Role preamble text
+
+2. **`docs/MIND-MODE-IMPLEMENTATION-GUIDE.md`**
+   - Comprehensive technical reference (~1500 lines)
+   - All prompts with examples
+   - All TypeScript data structures
+   - Model selection rationale
+   - Error handling & edge cases
+   - Configuration options
+   - Quick reference card
+   - File locations appendix
+
+### Files Changed
+- `app/api/generate/route.ts` - Added ROLE_PREAMBLE constant
+- `docs/MIND-MODE-VISUAL-GUIDE.md` - Created, then updated with role preamble
+- `docs/MIND-MODE-IMPLEMENTATION-GUIDE.md` - Created
+- `docs/ARCHITECTURE.md` - Updated with role preamble section
+- `docs/CHANGELOG.md` - Added v0.8.1 entry
+- `docs/HANDOFF.md` - Updated (this file)
+
+### Build Status
+✅ Build passes with no errors
